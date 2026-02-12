@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MediMinder – Gyógyszer és Orvosi Találkozó Kezelő</title>
+    <meta name="description" content="MediMinder – Egyszerű gyógyszerkezelő és orvosi találkozó alkalmazás időseknek">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ============================================ -->
+    <!-- SPLASH SCREEN                                 -->
+    <!-- ============================================ -->
+    <div id="splash-screen" class="splash-screen">
+        <div class="splash-content">
+            <div class="splash-icon">💊</div>
+            <h1 class="splash-title">MediMinder</h1>
+            <p class="splash-subtitle">Az Ön egészségügyi asszisztense</p>
+            <div class="splash-loader">
+                <div class="splash-loader-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MAIN APP                                      -->
+    <!-- ============================================ -->
+    <div id="app" class="app hidden">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-greeting" id="header-greeting"></div>
+            <div class="header-date" id="header-date"></div>
+        </header>
+
+        <!-- PAGE CONTAINER -->
+        <main class="page-container">
+
+            <!-- ======= DASHBOARD ======= -->
+            <section id="page-dashboard" class="page active">
+                <div class="section-card">
+                    <div class="section-header">
+                        <span class="section-icon">💊</span>
+                        <h2>Mai gyógyszerek</h2>
+                    </div>
+                    <div id="dashboard-meds" class="dashboard-meds-list">
+                        <!-- Dynamic content -->
+                    </div>
+                    <div id="dashboard-meds-empty" class="empty-state hidden">
+                        <span class="empty-icon">🎉</span>
+                        <p>Nincs mai gyógyszer bejegyezve</p>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <span class="section-icon">🩺</span>
+                        <h2>Következő vizit</h2>
+                    </div>
+                    <div id="dashboard-appointment" class="dashboard-appointment">
+                        <!-- Dynamic content -->
+                    </div>
+                    <div id="dashboard-appointment-empty" class="empty-state hidden">
+                        <span class="empty-icon">📅</span>
+                        <p>Nincs közelgő orvosi találkozó</p>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-card stat-taken">
+                        <div class="stat-number" id="stat-taken">0</div>
+                        <div class="stat-label">Bevéve ma</div>
+                    </div>
+                    <div class="stat-card stat-remaining">
+                        <div class="stat-number" id="stat-remaining">0</div>
+                        <div class="stat-label">Még hátra</div>
+                    </div>
+                    <div class="stat-card stat-appointments">
+                        <div class="stat-number" id="stat-appointments">0</div>
+                        <div class="stat-label">Vizit a héten</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ======= MEDICATIONS ======= -->
+            <section id="page-medications" class="page">
+                <h1 class="page-title">💊 Gyógyszereim</h1>
+
+                <!-- Day Selector -->
+                <div class="day-selector">
+                    <button class="day-btn active" data-day="today">Ma</button>
+                    <button class="day-btn" data-day="all">Összes</button>
+                </div>
+
+                <div id="medications-list" class="medications-list">
+                    <!-- Dynamic content -->
+                </div>
+
+                <div id="medications-empty" class="empty-state hidden">
+                    <span class="empty-icon">💊</span>
+                    <p>Még nincs gyógyszer felvéve</p>
+                    <p class="empty-hint">Nyomja meg az alábbi gombot az első gyógyszer hozzáadásához</p>
+                </div>
+
+                <button class="add-button" id="btn-add-med" aria-label="Új gyógyszer hozzáadása">
+                    <span class="add-button-icon">➕</span>
+                    <span>Új gyógyszer hozzáadása</span>
+                </button>
+            </section>
+
+            <!-- ======= APPOINTMENTS ======= -->
+            <section id="page-appointments" class="page">
+                <h1 class="page-title">🩺 Orvosi találkozók</h1>
+
+                <div class="appointments-section">
+                    <h3 class="appointments-section-title">📅 Közelgő</h3>
+                    <div id="appointments-upcoming" class="appointments-list">
+                        <!-- Dynamic content -->
+                    </div>
+                    <div id="appointments-upcoming-empty" class="empty-state hidden">
+                        <span class="empty-icon">🗓️</span>
+                        <p>Nincs közelgő találkozó</p>
+                    </div>
+                </div>
+
+                <div class="appointments-section">
+                    <h3 class="appointments-section-title">📋 Korábbi</h3>
+                    <div id="appointments-past" class="appointments-list">
+                        <!-- Dynamic content -->
+                    </div>
+                    <div id="appointments-past-empty" class="empty-state hidden">
+                        <p class="empty-small">Még nincs korábbi találkozó</p>
+                    </div>
+                </div>
+
+                <button class="add-button" id="btn-add-appointment" aria-label="Új találkozó hozzáadása">
+                    <span class="add-button-icon">➕</span>
+                    <span>Új találkozó hozzáadása</span>
+                </button>
+            </section>
+        </main>
+
+        <!-- BOTTOM NAV -->
+        <nav class="bottom-nav" role="navigation" aria-label="Fő navigáció">
+            <button class="nav-item active" data-page="dashboard" id="nav-dashboard">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Főoldal</span>
+            </button>
+            <button class="nav-item" data-page="medications" id="nav-medications">
+                <span class="nav-icon">💊</span>
+                <span class="nav-label">Gyógyszerek</span>
+            </button>
+            <button class="nav-item" data-page="appointments" id="nav-appointments">
+                <span class="nav-icon">🩺</span>
+                <span class="nav-label">Orvos</span>
+            </button>
+        </nav>
+
+        <!-- ============================================ -->
+        <!-- MODAL: ADD/EDIT MEDICATION                    -->
+        <!-- ============================================ -->
+        <div id="modal-medication" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Gyógyszer hozzáadása">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 id="modal-med-title">Új gyógyszer</h2>
+                    <button class="modal-close" id="modal-med-close" aria-label="Bezárás">&times;</button>
+                </div>
+                <form id="form-medication" class="modal-form">
+                    <input type="hidden" id="med-id">
+                    <div class="form-group">
+                        <label for="med-name">Gyógyszer neve *</label>
+                        <input type="text" id="med-name" placeholder="pl. Metformin" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="med-dosage">Dózis *</label>
+                        <input type="text" id="med-dosage" placeholder="pl. 500mg" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="med-frequency">Gyakoriság</label>
+                        <select id="med-frequency">
+                            <option value="daily1">Naponta 1x</option>
+                            <option value="daily2">Naponta 2x</option>
+                            <option value="daily3">Naponta 3x</option>
+                            <option value="weekly">Hetente</option>
+                            <option value="asneeded">Szükség szerint</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Bevételi időpontok</label>
+                        <div class="time-inputs" id="time-inputs">
+                            <input type="time" class="time-input" value="08:00">
+                        </div>
+                        <button type="button" class="btn-add-time" id="btn-add-time">+ Időpont</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="med-notes">Megjegyzés</label>
+                        <input type="text" id="med-notes" placeholder="pl. Étkezés után">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-cancel" id="btn-med-cancel">Mégse</button>
+                        <button type="submit" class="btn btn-primary">Mentés</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- MODAL: ADD/EDIT APPOINTMENT                   -->
+        <!-- ============================================ -->
+        <div id="modal-appointment" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Találkozó hozzáadása">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 id="modal-appt-title">Új találkozó</h2>
+                    <button class="modal-close" id="modal-appt-close" aria-label="Bezárás">&times;</button>
+                </div>
+                <form id="form-appointment" class="modal-form">
+                    <input type="hidden" id="appt-id">
+                    <div class="form-group">
+                        <label for="appt-doctor">Orvos neve *</label>
+                        <input type="text" id="appt-doctor" placeholder="pl. Dr. Kovács Péter" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="appt-specialty">Szakterület</label>
+                        <select id="appt-specialty">
+                            <option value="">Válasszon...</option>
+                            <option value="Belgyógyászat">Belgyógyászat</option>
+                            <option value="Kardiológia">Kardiológia</option>
+                            <option value="Szemészet">Szemészet</option>
+                            <option value="Ortopédia">Ortopédia</option>
+                            <option value="Neurológia">Neurológia</option>
+                            <option value="Bőrgyógyászat">Bőrgyógyászat</option>
+                            <option value="Fogászat">Fogászat</option>
+                            <option value="Urológia">Urológia</option>
+                            <option value="Nőgyógyászat">Nőgyógyászat</option>
+                            <option value="Fül-orr-gégészet">Fül-orr-gégészet</option>
+                            <option value="Háziorvos">Háziorvos</option>
+                            <option value="Egyéb">Egyéb</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="appt-date">Dátum *</label>
+                            <input type="date" id="appt-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="appt-time">Időpont *</label>
+                            <input type="time" id="appt-time" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="appt-location">Helyszín</label>
+                        <input type="text" id="appt-location" placeholder="pl. Klinika, 3. emelet">
+                    </div>
+                    <div class="form-group">
+                        <label for="appt-notes">Megjegyzés</label>
+                        <textarea id="appt-notes" rows="2" placeholder="pl. Vérvétel eredményét vinni"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-cancel" id="btn-appt-cancel">Mégse</button>
+                        <button type="submit" class="btn btn-primary">Mentés</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- TOAST NOTIFICATION                            -->
+        <!-- ============================================ -->
+        <div id="toast" class="toast hidden">
+            <span id="toast-message"></span>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- CONFIRM DIALOG                                -->
+        <!-- ============================================ -->
+        <div id="modal-confirm" class="modal-overlay hidden" role="dialog" aria-modal="true">
+            <div class="modal modal-confirm">
+                <div class="confirm-icon" id="confirm-icon">⚠️</div>
+                <h3 id="confirm-title">Biztosan törli?</h3>
+                <p id="confirm-message">Ez a művelet nem vonható vissza.</p>
+                <div class="modal-actions">
+                    <button class="btn btn-cancel" id="btn-confirm-no">Mégse</button>
+                    <button class="btn btn-danger" id="btn-confirm-yes">Törlés</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
