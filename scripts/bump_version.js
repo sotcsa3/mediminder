@@ -4,6 +4,7 @@ const path = require('path');
 
 const APP_JS_PATH = path.join(__dirname, '../app.js');
 const INDEX_HTML_PATH = path.join(__dirname, '../index.html');
+const SW_PATH = path.join(__dirname, '../sw.js');
 
 function getCurrentVersion() {
     const content = fs.readFileSync(APP_JS_PATH, 'utf8');
@@ -42,9 +43,17 @@ function updateIndexHtml(newVersion) {
     fs.writeFileSync(INDEX_HTML_PATH, content);
 }
 
+function updateSwJs(newVersion) {
+    let content = fs.readFileSync(SW_PATH, 'utf8');
+    // Update CACHE_NAME to force cache invalidation
+    // Looks for: const CACHE_NAME = 'mediminder-v...';
+    content = content.replace(/const CACHE_NAME = 'mediminder-v[^']+';/, `const CACHE_NAME = 'mediminder-v${newVersion}';`);
+    fs.writeFileSync(SW_PATH, content);
+}
+
 function gitCommit(newVersion) {
     try {
-        execSync(`git add ${APP_JS_PATH} ${INDEX_HTML_PATH}`);
+        execSync(`git add ${APP_JS_PATH} ${INDEX_HTML_PATH} ${SW_PATH}`);
         execSync(`git commit -m "chore: bump version to v${newVersion}"`);
         console.log(`Committed version bump: v${newVersion}`);
     } catch (e) {
@@ -61,6 +70,7 @@ console.log(`Bumping version: ${currentVersion} -> ${newVersion} (${type})`);
 
 updateAppJs(newVersion);
 updateIndexHtml(newVersion);
+updateSwJs(newVersion);
 gitCommit(newVersion);
 
 console.log('Done! 🚀');
