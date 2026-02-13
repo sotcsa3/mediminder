@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '1.3.15';
+const APP_VERSION = '1.3.16';
 
 // NOTE: DB object is now defined in firebase-db.js
 
@@ -46,6 +46,13 @@ function isFuture(dateStr) {
 
 function isPast(dateStr) {
     return dateStr < todayStr();
+}
+
+function isMobileOrStandalone() {
+    // Check if running in Capacitor/Cordova or Standalone mode (PWA installed)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isCapacitor = window.Capacitor !== undefined;
+    return isStandalone || isCapacitor;
 }
 
 function getFrequencyLabel(freq) {
@@ -1094,23 +1101,51 @@ function setupAuth() {
         btn.disabled = true;
         document.getElementById('auth-error').classList.add('hidden');
 
-        try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            const result = await auth.signInWithPopup(provider);
-            const user = result.user;
-            DB.saveUser({
-                name: user.displayName || user.email.split('@')[0],
-                email: user.email
-            });
-            closeAuthModal();
-            showToast('✅ Sikeres bejelentkezés!');
-        } catch (error) {
-            console.error('[Auth] Google error:', error.code, error.message);
-            if (error.code !== 'auth/popup-closed-by-user') {
-                showAuthError(getAuthErrorMessage(error.code));
+        if (isMobileOrStandalone() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            // Native Google Sign-In via Capacitor plugin
+            try {
+                console.log('[Auth] Starting native Google Sign-In...');
+                const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                console.log('[Auth] Native Google user:', googleUser.email);
+
+                // Create Firebase credential from native idToken
+                const credential = firebase.auth.GoogleAuthProvider.credential(googleUser.authentication.idToken);
+                const result = await auth.signInWithCredential(credential);
+                const user = result.user;
+                DB.saveUser({
+                    name: user.displayName || user.email.split('@')[0],
+                    email: user.email
+                });
+                closeAuthModal();
+                showToast('✅ Sikeres bejelentkezés!');
+            } catch (error) {
+                console.error('[Auth] Native Google Sign-In error:', error);
+                if (error.message !== 'The user canceled the sign-in flow.') {
+                    showAuthError('Google bejelentkezés sikertelen. Próbáld újra!');
+                }
+            } finally {
+                btn.disabled = false;
             }
-        } finally {
-            btn.disabled = false;
+        } else {
+            // Desktop Browser: Use Popup
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                const result = await auth.signInWithPopup(provider);
+                const user = result.user;
+                DB.saveUser({
+                    name: user.displayName || user.email.split('@')[0],
+                    email: user.email
+                });
+                closeAuthModal();
+                showToast('✅ Sikeres bejelentkezés!');
+            } catch (error) {
+                console.error('[Auth] Google Popup error:', error.code, error.message);
+                if (error.code !== 'auth/popup-closed-by-user') {
+                    showAuthError(getAuthErrorMessage(error.code));
+                }
+            } finally {
+                btn.disabled = false;
+            }
         }
     });
 
@@ -1120,6 +1155,7 @@ function setupAuth() {
         closeAccountModal();
         showToast('👋 Kijelentkezve');
     });
+
 
     // Firebase auth state listener
     auth.onAuthStateChanged(async (user) => {

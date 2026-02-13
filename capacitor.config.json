@@ -1,0 +1,15 @@
+{
+  "appId": "com.mediminder.app",
+  "appName": "MediMinder",
+  "webDir": "www",
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": [
+        "profile",
+        "email"
+      ],
+      "serverClientId": "82374151917-r0ik8vho7psut3emlkcvfnemv3roturi.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
+}

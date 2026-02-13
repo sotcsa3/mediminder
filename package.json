@@ -1,0 +1,30 @@
+{
+  "name": "oepncode-test1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:cap": "node scripts/build.js",
+    "build:android": "bash scripts/build_android.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sotcsa3/mediminder.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sotcsa3/mediminder/issues"
+  },
+  "homepage": "https://github.com/sotcsa3/mediminder#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/ios": "^8.1.0",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
+  }
+}
