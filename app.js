@@ -1030,6 +1030,32 @@ function setupAuth() {
         }
     });
 
+    // Google Sign-In
+    document.getElementById('btn-google-signin').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-google-signin');
+        btn.disabled = true;
+        document.getElementById('auth-error').classList.add('hidden');
+
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const result = await auth.signInWithPopup(provider);
+            const user = result.user;
+            DB.saveUser({
+                name: user.displayName || user.email.split('@')[0],
+                email: user.email
+            });
+            closeAuthModal();
+            showToast('✅ Sikeres bejelentkezés!');
+        } catch (error) {
+            console.error('[Auth] Google error:', error.code, error.message);
+            if (error.code !== 'auth/popup-closed-by-user') {
+                showAuthError(getAuthErrorMessage(error.code));
+            }
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
     // Logout
     document.getElementById('btn-logout').addEventListener('click', async () => {
         await auth.signOut();
