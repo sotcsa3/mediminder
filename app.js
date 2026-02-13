@@ -1329,4 +1329,23 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAuth();
     setupNotifications();
     handleSplash();
+
+    // Register Service Worker with update handling
+    if ('serviceWorker' in navigator) {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                window.location.reload();
+                refreshing = true;
+            }
+        });
+
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            // Check for updates on load
+            reg.update();
+            console.log('[SW] Registered');
+        }).catch(err => {
+            console.error('[SW] Registration failed:', err);
+        });
+    }
 });
