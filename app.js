@@ -78,6 +78,37 @@ function getWeekDates() {
 }
 
 // ============================================
+// TIME SELECTOR HELPERS (24h)
+// ============================================
+function generateTimeSelectHtml(timeStr) {
+    let [h, m] = (timeStr || '08:00').split(':');
+
+    let hours = '';
+    for (let i = 0; i < 24; i++) {
+        const val = String(i).padStart(2, '0');
+        hours += `<option value="${val}" ${val === h ? 'selected' : ''}>${val}</option>`;
+    }
+
+    let minutes = '';
+    for (let i = 0; i < 60; i += 5) {
+        const val = String(i).padStart(2, '0');
+        minutes += `<option value="${val}" ${val === m ? 'selected' : ''}>${val}</option>`;
+    }
+
+    return `<div class="time-select-wrapper">
+        <select class="time-select hour">${hours}</select>
+        <span class="time-separator">:</span>
+        <select class="time-select minute">${minutes}</select>
+    </div>`;
+}
+
+function getTimeSelectValue(wrapper) {
+    const h = wrapper.querySelector('.hour').value;
+    const m = wrapper.querySelector('.minute').value;
+    return `${h}:${m}`;
+}
+
+// ============================================
 // SAMPLE DATA
 // ============================================
 function seedSampleData() {
@@ -718,12 +749,24 @@ function openMedModal(medId = null) {
         document.getElementById('med-frequency').value = med.frequency;
         document.getElementById('med-notes').value = med.notes || '';
 
-        timeInputs.innerHTML = med.times.map(t =>
-            `<input type="time" class="time-input" value="${t}">`
-        ).join('');
+        timeInputs.innerHTML = med.times.map(t => `
+            <div class="time-input-row">
+                ${generateTimeSelectHtml(t)}
+                ${med.times.length > 1 ? '<button type="button" class="btn-remove-time" aria-label="Törlés">&times;</button>' : ''}
+            </div>
+        `).join('');
+
+        // Add delete handlers
+        timeInputs.querySelectorAll('.btn-remove-time').forEach(btn => {
+            btn.addEventListener('click', (e) => e.target.closest('.time-input-row').remove());
+        });
     } else {
         title.textContent = 'Új gyógyszer';
-        timeInputs.innerHTML = '<input type="time" class="time-input" value="08:00">';
+        timeInputs.innerHTML = `
+            <div class="time-input-row">
+                ${generateTimeSelectHtml('08:00')}
+            </div>
+        `;
     }
 
     modal.classList.remove('hidden');
@@ -741,16 +784,21 @@ function setupMedModal() {
     // Add time input
     document.getElementById('btn-add-time').addEventListener('click', () => {
         const container = document.getElementById('time-inputs');
-        const inputs = container.querySelectorAll('.time-input');
-        if (inputs.length >= 5) {
+        const rows = container.querySelectorAll('.time-input-row');
+        if (rows.length >= 5) {
             showToast('Maximum 5 időpont adható meg');
             return;
         }
-        const input = document.createElement('input');
-        input.type = 'time';
-        input.className = 'time-input';
-        input.value = '12:00';
-        container.appendChild(input);
+
+        const div = document.createElement('div');
+        div.className = 'time-input-row';
+        div.innerHTML = `
+            ${generateTimeSelectHtml('12:00')}
+            <button type="button" class="btn-remove-time" aria-label="Törlés">&times;</button>
+        `;
+
+        div.querySelector('.btn-remove-time').addEventListener('click', () => div.remove());
+        container.appendChild(div);
     });
 
     // Form submit
@@ -762,9 +810,10 @@ function setupMedModal() {
         const dosage = document.getElementById('med-dosage').value.trim();
         const frequency = document.getElementById('med-frequency').value;
         const notes = document.getElementById('med-notes').value.trim();
-        const times = Array.from(document.querySelectorAll('#time-inputs .time-input'))
-            .map(i => i.value)
-            .filter(v => v);
+
+        const times = Array.from(document.querySelectorAll('#time-inputs .time-select-wrapper'))
+            .map(wrapper => getTimeSelectValue(wrapper))
+            .sort();
 
         if (!name || !dosage) {
             showToast('❌ Kérem töltse ki a kötelező mezőket');
@@ -820,16 +869,20 @@ function openApptModal(apptId = null) {
         document.getElementById('appt-doctor').value = appt.doctorName;
         document.getElementById('appt-specialty').value = appt.specialty || '';
         document.getElementById('appt-date').value = appt.date;
-        document.getElementById('appt-time').value = appt.time;
         document.getElementById('appt-location').value = appt.location || '';
         document.getElementById('appt-notes').value = appt.notes || '';
+
+        // Time select
+        document.getElementById('appt-time-container').innerHTML = generateTimeSelectHtml(appt.time);
     } else {
         title.textContent = 'Új találkozó';
         // Set default date to tomorrow
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         document.getElementById('appt-date').value = tomorrow.toISOString().split('T')[0];
-        document.getElementById('appt-time').value = '10:00';
+
+        // Default time
+        document.getElementById('appt-time-container').innerHTML = generateTimeSelectHtml('10:00');
     }
 
     modal.classList.remove('hidden');
@@ -852,11 +905,14 @@ function setupApptModal() {
         const doctorName = document.getElementById('appt-doctor').value.trim();
         const specialty = document.getElementById('appt-specialty').value;
         const date = document.getElementById('appt-date').value;
-        const time = document.getElementById('appt-time').value;
         const location = document.getElementById('appt-location').value.trim();
         const notes = document.getElementById('appt-notes').value.trim();
 
-        if (!doctorName || !date || !time) {
+        // Get time from custom selector
+        const timeWrapper = document.querySelector('#appt-time-container .time-select-wrapper');
+        const time = getTimeSelectValue(timeWrapper);
+
+        if (!doctorName || !date) {
             showToast('❌ Kérem töltse ki a kötelező mezőket');
             return;
         }
