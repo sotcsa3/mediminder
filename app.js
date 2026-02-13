@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '1.3.2';
+const APP_VERSION = '1.3.3';
 
 // NOTE: DB object is now defined in firebase-db.js
 
