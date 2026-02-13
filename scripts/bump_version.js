@@ -51,8 +51,12 @@ function updateSwJs(newVersion) {
     fs.writeFileSync(SW_PATH, content);
 }
 
-function gitCommit(newVersion) {
+function gitCommit(newVersion, noCommit = false) {
     try {
+        if (noCommit) {
+            console.log('Skipping git commit due to --no-commit flag.');
+            return;
+        }
         execSync(`git add ${APP_JS_PATH} ${INDEX_HTML_PATH} ${SW_PATH}`);
         execSync(`git commit -m "chore: bump version to v${newVersion}"`);
         console.log(`Committed version bump: v${newVersion}`);
@@ -63,7 +67,10 @@ function gitCommit(newVersion) {
 
 // Main execution
 const currentVersion = getCurrentVersion();
-const type = process.argv[2] || 'patch'; // 'patch', 'minor', 'major'
+const args = process.argv.slice(2);
+const type = args.find(arg => !arg.startsWith('--')) || 'patch'; // 'patch', 'minor', 'major'
+const noCommit = args.includes('--no-commit');
+
 const newVersion = incrementVersion(currentVersion, type);
 
 console.log(`Bumping version: ${currentVersion} -> ${newVersion} (${type})`);
@@ -71,6 +78,6 @@ console.log(`Bumping version: ${currentVersion} -> ${newVersion} (${type})`);
 updateAppJs(newVersion);
 updateIndexHtml(newVersion);
 updateSwJs(newVersion);
-gitCommit(newVersion);
+gitCommit(newVersion, noCommit);
 
 console.log('Done! 🚀');
