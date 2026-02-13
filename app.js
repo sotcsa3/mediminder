@@ -1088,6 +1088,173 @@ function setupAuth() {
 }
 
 // ============================================
+// NOTIFICATIONS
+// ============================================
+const NOTIF_KEY = 'mediminder_notif_enabled';
+const NOTIF_SENT_KEY = 'mediminder_notif_sent';
+
+function isNotifEnabled() {
+    return localStorage.getItem(NOTIF_KEY) === 'true' && Notification.permission === 'granted';
+}
+
+function getNotifSentToday() {
+    try {
+        const data = JSON.parse(localStorage.getItem(NOTIF_SENT_KEY) || '{}');
+        if (data.date !== todayStr()) return {};
+        return data.sent || {};
+    } catch { return {}; }
+}
+
+function markNotifSent(medId, time) {
+    const data = { date: todayStr(), sent: getNotifSentToday() };
+    data.sent[`${medId}_${time}`] = true;
+    localStorage.setItem(NOTIF_SENT_KEY, JSON.stringify(data));
+}
+
+function updateBellIcon() {
+    const bell = document.getElementById('bell-icon');
+    const btn = document.getElementById('btn-notifications');
+    if (!('Notification' in window)) {
+        bell.textContent = '🔕';
+        btn.title = 'Értesítések nem támogatottak';
+        return;
+    }
+    if (isNotifEnabled()) {
+        bell.textContent = '🔔';
+        btn.title = 'Értesítések bekapcsolva';
+        btn.classList.add('active');
+    } else {
+        bell.textContent = '🔕';
+        btn.title = 'Értesítések kikapcsolva';
+        btn.classList.remove('active');
+    }
+}
+
+function sendMedNotification(medName, dosage, time) {
+    if (!isNotifEnabled()) return;
+    try {
+        new Notification('💊 MediMinder – Gyógyszer emlékeztető', {
+            body: `${medName} ${dosage} – ${time}\nIdeje bevenni a gyógyszerét!`,
+            icon: './icons/icon-192.png',
+            badge: './icons/icon-192.png',
+            tag: `med-${time}`,
+            requireInteraction: true
+        });
+    } catch (e) {
+        console.error('[Notif] Error sending:', e);
+    }
+}
+
+function checkMedicationTimes() {
+    if (!isNotifEnabled()) return;
+
+    const now = new Date();
+    const currentHH = String(now.getHours()).padStart(2, '0');
+    const currentMM = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${currentHH}:${currentMM}`;
+
+    const meds = DB.getMedications();
+    const logs = DB.getMedLogs();
+    const today = todayStr();
+    const sent = getNotifSentToday();
+
+    meds.forEach(med => {
+        (med.times || []).forEach(time => {
+            // Skip if already sent today
+            if (sent[`${med.id}_${time}`]) return;
+
+            // Skip if already taken
+            const taken = logs.some(l =>
+                l.medId === med.id && l.date === today && l.time === time && l.taken
+            );
+            if (taken) return;
+
+            // Check if it's time (within 1-minute window)
+            if (currentTime === time) {
+                sendMedNotification(med.name, med.dosage, time);
+                markNotifSent(med.id, time);
+            }
+
+            // Also send a reminder 5 minutes before
+            const [h, m] = time.split(':').map(Number);
+            const reminderDate = new Date(now);
+            reminderDate.setHours(h, m - 5, 0);
+            const remHH = String(reminderDate.getHours()).padStart(2, '0');
+            const remMM = String(reminderDate.getMinutes()).padStart(2, '0');
+            const reminderTime = `${remHH}:${remMM}`;
+
+            if (currentTime === reminderTime) {
+                try {
+                    new Notification('⏰ MediMinder – Hamarosan!', {
+                        body: `${med.name} ${med.dosage} – 5 perc múlva (${time})`,
+                        icon: './icons/icon-192.png',
+                        tag: `med-remind-${time}`
+                    });
+                } catch (e) { /* ignore */ }
+                markNotifSent(med.id, time);
+            }
+        });
+    });
+}
+
+let notifInterval = null;
+
+function startNotifChecker() {
+    if (notifInterval) clearInterval(notifInterval);
+    if (isNotifEnabled()) {
+        checkMedicationTimes();
+        notifInterval = setInterval(checkMedicationTimes, 30000); // every 30 sec
+        console.log('[Notif] Checker started');
+    }
+}
+
+function stopNotifChecker() {
+    if (notifInterval) {
+        clearInterval(notifInterval);
+        notifInterval = null;
+        console.log('[Notif] Checker stopped');
+    }
+}
+
+async function toggleNotifications() {
+    if (!('Notification' in window)) {
+        showToast('❌ A böngésző nem támogatja az értesítéseket');
+        return;
+    }
+
+    if (isNotifEnabled()) {
+        // Turn off
+        localStorage.setItem(NOTIF_KEY, 'false');
+        stopNotifChecker();
+        updateBellIcon();
+        showToast('🔕 Értesítések kikapcsolva');
+        return;
+    }
+
+    // Request permission
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+        localStorage.setItem(NOTIF_KEY, 'true');
+        startNotifChecker();
+        updateBellIcon();
+        showToast('🔔 Értesítések bekapcsolva!');
+        // Send a test notification
+        new Notification('✅ MediMinder értesítések aktívak!', {
+            body: 'Emlékeztetni fogunk a gyógyszerbevételi időpontokra.',
+            icon: './icons/icon-192.png'
+        });
+    } else {
+        showToast('❌ Értesítés engedély megtagadva');
+    }
+}
+
+function setupNotifications() {
+    document.getElementById('btn-notifications').addEventListener('click', toggleNotifications);
+    updateBellIcon();
+    startNotifChecker();
+}
+
+// ============================================
 // INIT
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -1098,5 +1265,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupConfirmDialog();
     setupMedDaySelector();
     setupAuth();
+    setupNotifications();
     handleSplash();
 });
