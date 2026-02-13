@@ -2,7 +2,7 @@
     "name": "MediMinder – Gyógyszerkezelő",
     "short_name": "MediMinder",
     "description": "Gyógyszer és orvosi találkozó kezelő alkalmazás időseknek",
-    "start_url": ".",
+    "start_url": "/mediminder/",
     "display": "standalone",
     "background_color": "#0F172A",
     "theme_color": "#6366F1",
