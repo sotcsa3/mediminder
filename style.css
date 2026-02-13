@@ -126,6 +126,27 @@ textarea {
     margin-bottom: 32px;
 }
 
+.splash-version {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.app-version {
+    text-align: center;
+    font-size: 11px;
+    color: var(--color-text-light);
+    padding: 4px 0 8px;
+    opacity: 0.5;
+    position: fixed;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99;
+}
+
 .splash-loader {
     width: 180px;
     height: 6px;

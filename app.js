@@ -2,6 +2,8 @@
    MediMinder – Application Logic
    ============================================ */
 
+const APP_VERSION = '1.3.0';
+
 // NOTE: DB object is now defined in firebase-db.js
 
 // ============================================
@@ -1258,6 +1260,10 @@ function setupNotifications() {
 // INIT
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Show version
+    document.getElementById('splash-version').textContent = `v${APP_VERSION}`;
+    document.getElementById('app-version').textContent = `v${APP_VERSION}`;
+
     seedSampleData();
     setupNavigation();
     setupMedModal();
