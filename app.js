@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '1.3.16';
+const APP_VERSION = '1.3.17';
 
 // NOTE: DB object is now defined in firebase-db.js
 
@@ -1101,26 +1101,25 @@ function setupAuth() {
         btn.disabled = true;
         document.getElementById('auth-error').classList.add('hidden');
 
-        if (isMobileOrStandalone() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
-            // Native Google Sign-In via Capacitor plugin
+        if (isMobileOrStandalone() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication) {
+            // Native Google Sign-In via @capacitor-firebase/authentication
             try {
-                console.log('[Auth] Starting native Google Sign-In...');
-                const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
-                console.log('[Auth] Native Google user:', googleUser.email);
+                console.log('[Auth] Starting native Firebase Google Sign-In...');
+                const result = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithGoogle();
+                console.log('[Auth] Native sign-in result:', result);
 
-                // Create Firebase credential from native idToken
-                const credential = firebase.auth.GoogleAuthProvider.credential(googleUser.authentication.idToken);
-                const result = await auth.signInWithCredential(credential);
-                const user = result.user;
-                DB.saveUser({
-                    name: user.displayName || user.email.split('@')[0],
-                    email: user.email
-                });
+                // The plugin handles Firebase Auth natively, but we also need to sign in on the web layer
+                if (result && result.credential && result.credential.idToken) {
+                    const credential = firebase.auth.GoogleAuthProvider.credential(result.credential.idToken);
+                    await auth.signInWithCredential(credential);
+                }
+                // Auth state listener will handle the rest (onAuthStateChanged)
                 closeAuthModal();
                 showToast('✅ Sikeres bejelentkezés!');
             } catch (error) {
                 console.error('[Auth] Native Google Sign-In error:', error);
-                if (error.message !== 'The user canceled the sign-in flow.') {
+                const msg = error.message || '';
+                if (!msg.includes('cancel') && !msg.includes('dismissed')) {
                     showAuthError('Google bejelentkezés sikertelen. Próbáld újra!');
                 }
             } finally {
@@ -1365,6 +1364,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAuth();
     setupNotifications();
     handleSplash();
+
+    // Log Capacitor plugin availability
+    if (window.Capacitor && window.Capacitor.Plugins) {
+        console.log('[Auth] Capacitor plugins available:', Object.keys(window.Capacitor.Plugins));
+    }
 
     // Register Service Worker with update handling
     if ('serviceWorker' in navigator) {
