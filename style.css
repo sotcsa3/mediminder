@@ -33,7 +33,7 @@
 
     --shadow-sm: 0 2px 8px var(--color-shadow);
     --shadow-md: 0 4px 16px var(--color-shadow);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
 
     --font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-size-sm: 16px;
@@ -49,7 +49,9 @@
 }
 
 /* --- Reset & Base --- */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -71,7 +73,10 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
     font-family: inherit;
     font-size: inherit;
 }
@@ -139,18 +144,37 @@ button, input, select, textarea {
 }
 
 @keyframes splashIn {
-    from { opacity: 0; transform: translateY(30px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes loading {
-    0%   { width: 0; }
-    100% { width: 100%; }
+    0% {
+        width: 0;
+    }
+
+    100% {
+        width: 100%;
+    }
 }
 
 @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.08); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.08);
+    }
 }
 
 /* ============================================
@@ -177,6 +201,13 @@ button, input, select, textarea {
     padding: 20px 24px 18px;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-left {
+    flex: 1;
 }
 
 .header-greeting {
@@ -190,6 +221,30 @@ button, input, select, textarea {
     color: rgba(255, 255, 255, 0.85);
     font-weight: 600;
     margin-top: 2px;
+}
+
+.header-account-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    flex-shrink: 0;
+}
+
+.header-account-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.7);
+    transform: scale(1.05);
+}
+
+.account-icon {
+    font-size: 22px;
 }
 
 /* --- Page Container --- */
@@ -208,8 +263,15 @@ button, input, select, textarea {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .page-title {
@@ -416,9 +478,17 @@ button, input, select, textarea {
     margin-bottom: 4px;
 }
 
-.stat-taken .stat-number { color: var(--color-success); }
-.stat-remaining .stat-number { color: var(--color-secondary); }
-.stat-appointments .stat-number { color: var(--color-primary); }
+.stat-taken .stat-number {
+    color: var(--color-success);
+}
+
+.stat-remaining .stat-number {
+    color: var(--color-secondary);
+}
+
+.stat-appointments .stat-number {
+    color: var(--color-primary);
+}
 
 .stat-label {
     font-size: 14px;
@@ -973,18 +1043,35 @@ button, input, select, textarea {
 }
 
 @keyframes overlayIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes modalSlideUp {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
 }
 
 @keyframes modalZoomIn {
-    from { transform: scale(0.85); opacity: 0; }
-    to   { transform: scale(1); opacity: 1; }
+    from {
+        transform: scale(0.85);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .modal-header {
@@ -1240,10 +1327,78 @@ button, input, select, textarea {
 }
 
 /* ============================================
+   AUTH UI
+   ============================================ */
+.auth-error {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    margin-bottom: 12px;
+    animation: fadeIn 0.3s ease;
+}
+
+.auth-switch {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.auth-switch-btn {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 4px;
+}
+
+.auth-switch-btn:hover {
+    color: var(--color-primary-dark);
+}
+
+.account-email {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: 12px;
+}
+
+.auth-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-success);
+    animation: pulse 2s infinite;
+}
+
+/* ============================================
    ACCESSIBILITY – REDUCED MOTION
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+
+    *,
+    *::before,
+    *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
     }

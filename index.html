@@ -55,8 +55,13 @@
     <div id="app" class="app hidden">
         <!-- HEADER -->
         <header class="app-header">
-            <div class="header-greeting" id="header-greeting"></div>
-            <div class="header-date" id="header-date"></div>
+            <div class="header-left">
+                <div class="header-greeting" id="header-greeting"></div>
+                <div class="header-date" id="header-date"></div>
+            </div>
+            <button class="header-account-btn" id="btn-account" aria-label="Fiók">
+                <span class="account-icon" id="account-icon">👤</span>
+            </button>
         </header>
 
         <!-- PAGE CONTAINER -->
@@ -313,9 +318,68 @@
                 </div>
             </div>
         </div>
+
+        <!-- ============================================ -->
+        <!-- MODAL: AUTH (LOGIN / REGISTER)                -->
+        <!-- ============================================ -->
+        <div id="modal-auth" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Bejelentkezés">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 id="modal-auth-title">Bejelentkezés</h2>
+                    <button class="modal-close" id="modal-auth-close" aria-label="Bezárás">&times;</button>
+                </div>
+                <form id="form-auth" class="modal-form">
+                    <div class="form-group">
+                        <label for="auth-email">Email cím *</label>
+                        <input type="email" id="auth-email" placeholder="pelda@email.com" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="auth-password">Jelszó *</label>
+                        <input type="password" id="auth-password" placeholder="Minimum 6 karakter" required
+                            minlength="6" autocomplete="current-password">
+                    </div>
+                    <div id="auth-error" class="auth-error hidden"></div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary" id="btn-auth-submit">Bejelentkezés</button>
+                    </div>
+                    <div class="auth-switch">
+                        <span id="auth-switch-text">Még nincs fiókja?</span>
+                        <button type="button" class="auth-switch-btn" id="btn-auth-switch">Regisztráció</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- MODAL: ACCOUNT (Logged in user)               -->
+        <!-- ============================================ -->
+        <div id="modal-account" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Fiók">
+            <div class="modal modal-confirm">
+                <div class="confirm-icon">👤</div>
+                <h3 id="account-user-name">Felhasználó</h3>
+                <p id="account-user-email" class="account-email"></p>
+                <div class="auth-status-badge" id="auth-status-badge">
+                    <span class="status-dot"></span>
+                    <span>Szinkronizálva</span>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-cancel" id="btn-account-close">Bezárás</button>
+                    <button class="btn btn-danger" id="btn-logout">Kijelentkezés</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+    <!-- App scripts (order matters!) -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-db.js"></script>
     <script src="app.js"></script>
+
     <script>
         // Register Service Worker for offline support
         if ('serviceWorker' in navigator) {

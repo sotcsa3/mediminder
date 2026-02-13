@@ -2,64 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-// ============================================
-// DATA LAYER (LocalStorage)
-// ============================================
-const DB = {
-    KEYS: {
-        MEDICATIONS: 'mediminder_medications',
-        MED_LOGS: 'mediminder_med_logs',
-        APPOINTMENTS: 'mediminder_appointments',
-        USER: 'mediminder_user'
-    },
-
-    get(key) {
-        try {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : null;
-        } catch { return null; }
-    },
-
-    set(key, value) {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch (e) {
-            console.error('Storage error:', e);
-        }
-    },
-
-    getMedications() {
-        return this.get(this.KEYS.MEDICATIONS) || [];
-    },
-
-    saveMedications(meds) {
-        this.set(this.KEYS.MEDICATIONS, meds);
-    },
-
-    getMedLogs() {
-        return this.get(this.KEYS.MED_LOGS) || [];
-    },
-
-    saveMedLogs(logs) {
-        this.set(this.KEYS.MED_LOGS, logs);
-    },
-
-    getAppointments() {
-        return this.get(this.KEYS.APPOINTMENTS) || [];
-    },
-
-    saveAppointments(appts) {
-        this.set(this.KEYS.APPOINTMENTS, appts);
-    },
-
-    getUser() {
-        return this.get(this.KEYS.USER) || { name: 'Kedves Felhasználó' };
-    },
-
-    saveUser(user) {
-        this.set(this.KEYS.USER, user);
-    }
-};
+// NOTE: DB object is now defined in firebase-db.js
 
 // ============================================
 // UTILITY HELPERS
@@ -333,6 +276,16 @@ function updateHeader() {
     const user = DB.getUser();
     document.getElementById('header-greeting').textContent = `${getGreeting()}, ${user.name}!`;
     document.getElementById('header-date').textContent = formatDateLong(todayStr());
+
+    // Update account button
+    const accountIcon = document.getElementById('account-icon');
+    if (DB.isLoggedIn()) {
+        accountIcon.textContent = '✅';
+        accountIcon.title = 'Bejelentkezve';
+    } else {
+        accountIcon.textContent = '👤';
+        accountIcon.title = 'Bejelentkezés';
+    }
 }
 
 // ============================================
@@ -954,6 +907,161 @@ function handleSplash() {
 }
 
 // ============================================
+// AUTH UI
+// ============================================
+let authMode = 'login'; // 'login' or 'register'
+
+function openAuthModal() {
+    if (DB.isLoggedIn()) {
+        // Show account info modal
+        const user = auth.currentUser;
+        document.getElementById('account-user-name').textContent = DB.getUser().name || 'Felhasználó';
+        document.getElementById('account-user-email').textContent = user?.email || '';
+        document.getElementById('modal-account').classList.remove('hidden');
+    } else {
+        // Show login modal
+        authMode = 'login';
+        updateAuthUI();
+        document.getElementById('form-auth').reset();
+        document.getElementById('auth-error').classList.add('hidden');
+        document.getElementById('modal-auth').classList.remove('hidden');
+    }
+}
+
+function closeAuthModal() {
+    document.getElementById('modal-auth').classList.add('hidden');
+}
+
+function closeAccountModal() {
+    document.getElementById('modal-account').classList.add('hidden');
+}
+
+function updateAuthUI() {
+    const title = document.getElementById('modal-auth-title');
+    const submitBtn = document.getElementById('btn-auth-submit');
+    const switchText = document.getElementById('auth-switch-text');
+    const switchBtn = document.getElementById('btn-auth-switch');
+
+    if (authMode === 'login') {
+        title.textContent = 'Bejelentkezés';
+        submitBtn.textContent = 'Bejelentkezés';
+        switchText.textContent = 'Még nincs fiókja?';
+        switchBtn.textContent = 'Regisztráció';
+    } else {
+        title.textContent = 'Regisztráció';
+        submitBtn.textContent = 'Regisztráció';
+        switchText.textContent = 'Már van fiókja?';
+        switchBtn.textContent = 'Bejelentkezés';
+    }
+}
+
+function showAuthError(message) {
+    const el = document.getElementById('auth-error');
+    el.textContent = message;
+    el.classList.remove('hidden');
+}
+
+function getAuthErrorMessage(code) {
+    const messages = {
+        'auth/user-not-found': 'Nem található fiók ezzel az email címmel.',
+        'auth/wrong-password': 'Helytelen jelszó.',
+        'auth/invalid-credential': 'Helytelen email vagy jelszó.',
+        'auth/email-already-in-use': 'Ez az email cím már foglalt.',
+        'auth/weak-password': 'A jelszó túl gyenge. Minimum 6 karakter.',
+        'auth/invalid-email': 'Érvénytelen email cím.',
+        'auth/too-many-requests': 'Túl sok próbálkozás. Kérjük várjon.',
+        'auth/network-request-failed': 'Hálózati hiba. Ellenőrizze az internetkapcsolatot.'
+    };
+    return messages[code] || 'Ismeretlen hiba történt. Próbálja újra.';
+}
+
+function setupAuth() {
+    // Account button
+    document.getElementById('btn-account').addEventListener('click', openAuthModal);
+
+    // Auth modal close
+    document.getElementById('modal-auth-close').addEventListener('click', closeAuthModal);
+    document.getElementById('modal-auth').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeAuthModal();
+    });
+
+    // Account modal close
+    document.getElementById('btn-account-close').addEventListener('click', closeAccountModal);
+    document.getElementById('modal-account').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeAccountModal();
+    });
+
+    // Toggle login/register
+    document.getElementById('btn-auth-switch').addEventListener('click', () => {
+        authMode = authMode === 'login' ? 'register' : 'login';
+        updateAuthUI();
+        document.getElementById('auth-error').classList.add('hidden');
+    });
+
+    // Form submit
+    document.getElementById('form-auth').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value;
+        const submitBtn = document.getElementById('btn-auth-submit');
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Kérem várjon...';
+        document.getElementById('auth-error').classList.add('hidden');
+
+        try {
+            if (authMode === 'register') {
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                // Set user name from email
+                const name = email.split('@')[0];
+                DB.saveUser({ name, email });
+                showToast('✅ Sikeres regisztráció!');
+            } else {
+                await auth.signInWithEmailAndPassword(email, password);
+                showToast('✅ Sikeres bejelentkezés!');
+            }
+            closeAuthModal();
+        } catch (error) {
+            console.error('[Auth] Error:', error.code, error.message);
+            showAuthError(getAuthErrorMessage(error.code));
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = authMode === 'login' ? 'Bejelentkezés' : 'Regisztráció';
+        }
+    });
+
+    // Logout
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+        await auth.signOut();
+        closeAccountModal();
+        showToast('👋 Kijelentkezve');
+    });
+
+    // Firebase auth state listener
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            console.log('[Auth] Logged in:', user.email);
+            await DB.onLogin(user.uid);
+        } else {
+            console.log('[Auth] Logged out');
+            DB.onLogout();
+        }
+        updateHeader();
+        renderDashboard();
+        if (currentPage === 'medications') renderMedications();
+        if (currentPage === 'appointments') renderAppointments();
+    });
+
+    // Listen for real-time data changes from other devices
+    DB.onDataChange((type) => {
+        console.log('[DB] Data changed:', type);
+        if (currentPage === 'dashboard') renderDashboard();
+        if (currentPage === 'medications' && (type === 'medications' || type === 'medLogs')) renderMedications();
+        if (currentPage === 'appointments' && type === 'appointments') renderAppointments();
+    });
+}
+
+// ============================================
 // INIT
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -963,5 +1071,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupApptModal();
     setupConfirmDialog();
     setupMedDaySelector();
+    setupAuth();
     handleSplash();
 });
