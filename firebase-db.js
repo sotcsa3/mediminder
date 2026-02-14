@@ -264,5 +264,56 @@ const DB = {
             db.collection('users').doc(this._userId).set(user, { merge: true })
                 .catch(e => console.error('[DB] Error saving user:', e));
         }
+    },
+
+    // ── Admin API ────────────────────────────
+    async admin_getAllUsers() {
+        try {
+            const snapshot = await db.collection('users').get();
+            const users = [];
+            snapshot.forEach(doc => {
+                users.push({ uid: doc.id, ...doc.data() });
+            });
+            return users;
+        } catch (e) {
+            console.error('[DB Admin] Error loading users:', e);
+            return [];
+        }
+    },
+
+    async admin_getUserMedications(userId) {
+        try {
+            const snapshot = await db.collection('users').doc(userId).collection('medications').get();
+            const items = [];
+            snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+            return items;
+        } catch (e) {
+            console.error('[DB Admin] Error loading medications:', e);
+            return [];
+        }
+    },
+
+    async admin_getUserMedLogs(userId) {
+        try {
+            const snapshot = await db.collection('users').doc(userId).collection('medLogs').get();
+            const items = [];
+            snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+            return items;
+        } catch (e) {
+            console.error('[DB Admin] Error loading medLogs:', e);
+            return [];
+        }
+    },
+
+    async admin_getUserAppointments(userId) {
+        try {
+            const snapshot = await db.collection('users').doc(userId).collection('appointments').get();
+            const items = [];
+            snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+            return items;
+        } catch (e) {
+            console.error('[DB Admin] Error loading appointments:', e);
+            return [];
+        }
     }
 };

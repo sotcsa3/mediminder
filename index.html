@@ -46,7 +46,7 @@
             <div class="splash-loader">
                 <div class="splash-loader-bar"></div>
             </div>
-            <p class="splash-version" id="splash-version">v1.3.19</p>
+            <p class="splash-version" id="splash-version">v1.3.20</p>
         </div>
     </div>
 
@@ -175,6 +175,68 @@
                     <span>Új találkozó hozzáadása</span>
                 </button>
             </section>
+
+            <!-- ======= ADMIN ======= -->
+            <section id="page-admin" class="page">
+                <h1 class="page-title">🔧 Admin Panel</h1>
+
+                <!-- Users List -->
+                <div class="admin-section" id="admin-users-section">
+                    <div class="section-card">
+                        <div class="section-header">
+                            <span class="section-icon">👥</span>
+                            <h2>Felhasználók</h2>
+                            <button class="admin-refresh-btn" id="btn-admin-refresh" aria-label="Frissítés">🔄</button>
+                        </div>
+                        <div id="admin-users-loading" class="admin-loading">Betöltés...</div>
+                        <div id="admin-users-list" class="admin-users-list"></div>
+                        <div id="admin-users-empty" class="empty-state hidden">
+                            <span class="empty-icon">👥</span>
+                            <p>Nincsenek regisztrált felhasználók</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Detail -->
+                <div class="admin-section hidden" id="admin-detail-section">
+                    <button class="admin-back-btn" id="btn-admin-back">← Vissza a listához</button>
+                    <div class="section-card">
+                        <div class="section-header">
+                            <span class="section-icon">👤</span>
+                            <h2 id="admin-detail-name">Felhasználó</h2>
+                        </div>
+                        <p class="admin-detail-email" id="admin-detail-email"></p>
+                        <p class="admin-detail-uid" id="admin-detail-uid"></p>
+                    </div>
+
+                    <!-- User's Medications -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <span class="section-icon">💊</span>
+                            <h2>Gyógyszerei</h2>
+                        </div>
+                        <div id="admin-detail-meds"></div>
+                    </div>
+
+                    <!-- User's Med Logs -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <span class="section-icon">📋</span>
+                            <h2>Bevételi napló</h2>
+                        </div>
+                        <div id="admin-detail-logs"></div>
+                    </div>
+
+                    <!-- User's Appointments -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <span class="section-icon">🩺</span>
+                            <h2>Találkozók</h2>
+                        </div>
+                        <div id="admin-detail-appts"></div>
+                    </div>
+                </div>
+            </section>
         </main>
 
         <!-- BOTTOM NAV -->
@@ -191,8 +253,12 @@
                 <span class="nav-icon">🩺</span>
                 <span class="nav-label">Orvos</span>
             </button>
+            <button class="nav-item hidden" data-page="admin" id="nav-admin">
+                <span class="nav-icon">🔧</span>
+                <span class="nav-label">Admin</span>
+            </button>
         </nav>
-        <div class="app-version" id="app-version">v1.3.19</div>
+        <div class="app-version" id="app-version">v1.3.20</div>
 
         <!-- ============================================ -->
         <!-- MODAL: ADD/EDIT MEDICATION                    -->

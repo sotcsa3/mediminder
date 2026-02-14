@@ -2,9 +2,14 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '1.3.19';
+const APP_VERSION = '1.3.20';
+const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
+
+function isAdmin() {
+    return DB.isLoggedIn() && auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
+}
 
 // ============================================
 // UTILITY HELPERS
@@ -300,6 +305,7 @@ function navigateTo(pageName) {
     if (pageName === 'dashboard') renderDashboard();
     if (pageName === 'medications') renderMedications();
     if (pageName === 'appointments') renderAppointments();
+    if (pageName === 'admin' && isAdmin()) renderAdmin();
 }
 
 function setupNavigation() {
@@ -958,6 +964,203 @@ function setupApptModal() {
 }
 
 // ============================================
+// ADMIN PANEL
+// ============================================
+function updateAdminVisibility() {
+    const adminNav = document.getElementById('nav-admin');
+    if (isAdmin()) {
+        adminNav.classList.remove('hidden');
+    } else {
+        adminNav.classList.add('hidden');
+        // If currently on admin page, navigate away
+        if (currentPage === 'admin') {
+            navigateTo('dashboard');
+        }
+    }
+}
+
+let adminUsersCache = [];
+
+async function renderAdmin() {
+    if (!isAdmin()) return;
+
+    const loadingEl = document.getElementById('admin-users-loading');
+    const listEl = document.getElementById('admin-users-list');
+    const emptyEl = document.getElementById('admin-users-empty');
+    const usersSection = document.getElementById('admin-users-section');
+    const detailSection = document.getElementById('admin-detail-section');
+
+    // Show users list, hide detail
+    usersSection.classList.remove('hidden');
+    detailSection.classList.add('hidden');
+
+    // Show loading
+    loadingEl.classList.remove('hidden');
+    listEl.innerHTML = '';
+    emptyEl.classList.add('hidden');
+
+    try {
+        const users = await DB.admin_getAllUsers();
+        adminUsersCache = users;
+        loadingEl.classList.add('hidden');
+
+        if (users.length === 0) {
+            emptyEl.classList.remove('hidden');
+            return;
+        }
+
+        listEl.innerHTML = users.map(user => `
+            <div class="admin-user-card" data-uid="${user.uid}">
+                <div class="admin-user-info">
+                    <div class="admin-user-name">${user.name || 'Névtelen'}</div>
+                    <div class="admin-user-email">${user.email || 'Nincs email'}</div>
+                    <div class="admin-user-uid">${user.uid}</div>
+                </div>
+                <span class="admin-user-arrow">→</span>
+            </div>
+        `).join('');
+
+        // Click handlers
+        listEl.querySelectorAll('.admin-user-card').forEach(card => {
+            card.addEventListener('click', () => {
+                renderAdminUserDetail(card.dataset.uid);
+            });
+        });
+    } catch (e) {
+        loadingEl.textContent = '❌ Hiba a betöltéskor';
+        console.error('[Admin] Error:', e);
+    }
+}
+
+async function renderAdminUserDetail(userId) {
+    const usersSection = document.getElementById('admin-users-section');
+    const detailSection = document.getElementById('admin-detail-section');
+
+    // Toggle sections
+    usersSection.classList.add('hidden');
+    detailSection.classList.remove('hidden');
+
+    // Find user info
+    const user = adminUsersCache.find(u => u.uid === userId) || {};
+    document.getElementById('admin-detail-name').textContent = user.name || 'Névtelen';
+    document.getElementById('admin-detail-email').textContent = `📧 ${user.email || 'Nincs email'}`;
+    document.getElementById('admin-detail-uid').textContent = `UID: ${userId}`;
+
+    // Reset detail containers
+    document.getElementById('admin-detail-meds').innerHTML = '<div class="admin-loading">Betöltés...</div>';
+    document.getElementById('admin-detail-logs').innerHTML = '<div class="admin-loading">Betöltés...</div>';
+    document.getElementById('admin-detail-appts').innerHTML = '<div class="admin-loading">Betöltés...</div>';
+
+    // Load data in parallel
+    const [meds, logs, appts] = await Promise.all([
+        DB.admin_getUserMedications(userId),
+        DB.admin_getUserMedLogs(userId),
+        DB.admin_getUserAppointments(userId)
+    ]);
+
+    // Render medications
+    const medsEl = document.getElementById('admin-detail-meds');
+    if (meds.length === 0) {
+        medsEl.innerHTML = '<div class="admin-empty">Nincs gyógyszer</div>';
+    } else {
+        medsEl.innerHTML = `
+            <table class="admin-table">
+                <thead><tr><th>Név</th><th>Dózis</th><th>Gyakoriság</th><th>Időpontok</th></tr></thead>
+                <tbody>
+                    ${meds.map(m => `
+                        <tr>
+                            <td><strong>${m.name || '-'}</strong></td>
+                            <td>${m.dosage || '-'}</td>
+                            <td>${getFrequencyLabel(m.frequency)}</td>
+                            <td>${(m.times || []).join(', ')}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // Render med logs
+    const logsEl = document.getElementById('admin-detail-logs');
+    if (logs.length === 0) {
+        logsEl.innerHTML = '<div class="admin-empty">Nincs bevételi napló</div>';
+    } else {
+        // Sort by date desc, then time
+        logs.sort((a, b) => {
+            const dateCompare = (b.date || '').localeCompare(a.date || '');
+            if (dateCompare !== 0) return dateCompare;
+            return (a.time || '').localeCompare(b.time || '');
+        });
+
+        // Map medId to name
+        const medMap = {};
+        meds.forEach(m => { medMap[m.id] = m.name; });
+
+        // Show last 50
+        const recentLogs = logs.slice(0, 50);
+
+        logsEl.innerHTML = `
+            <table class="admin-table">
+                <thead><tr><th>Dátum</th><th>Idő</th><th>Gyógyszer</th><th>Állapot</th><th>Bevéve</th></tr></thead>
+                <tbody>
+                    ${recentLogs.map(l => `
+                        <tr>
+                            <td>${l.date || '-'}</td>
+                            <td>${l.time || '-'}</td>
+                            <td>${medMap[l.medId] || l.medId || '-'}</td>
+                            <td><span class="admin-badge ${l.taken ? 'taken' : 'not-taken'}">${l.taken ? '✅ Bevéve' : '❌ Nem'}</span></td>
+                            <td>${l.takenAt ? new Date(l.takenAt).toLocaleString('hu-HU') : '-'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            ${logs.length > 50 ? `<div class="admin-empty">...és még ${logs.length - 50} bejegyzés</div>` : ''}
+        `;
+    }
+
+    // Render appointments
+    const apptsEl = document.getElementById('admin-detail-appts');
+    if (appts.length === 0) {
+        apptsEl.innerHTML = '<div class="admin-empty">Nincs találkozó</div>';
+    } else {
+        appts.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        apptsEl.innerHTML = `
+            <table class="admin-table">
+                <thead><tr><th>Dátum</th><th>Idő</th><th>Orvos</th><th>Szakterület</th><th>Állapot</th></tr></thead>
+                <tbody>
+                    ${appts.map(a => `
+                        <tr>
+                            <td>${a.date || '-'}</td>
+                            <td>${a.time || '-'}</td>
+                            <td>${a.doctorName || '-'}</td>
+                            <td>${a.specialty || '-'}</td>
+                            <td><span class="admin-badge status-${a.status || 'pending'}">${a.status === 'done' ? '✅ Megtörtént' :
+                a.status === 'missed' ? '❌ Elmaradt' :
+                    '⏳ Függőben'
+            }</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+}
+
+function setupAdmin() {
+    // Refresh button
+    document.getElementById('btn-admin-refresh').addEventListener('click', () => {
+        renderAdmin();
+        showToast('🔄 Frissítve');
+    });
+
+    // Back button
+    document.getElementById('btn-admin-back').addEventListener('click', () => {
+        document.getElementById('admin-users-section').classList.remove('hidden');
+        document.getElementById('admin-detail-section').classList.add('hidden');
+    });
+}
+
+// ============================================
 // SPLASH SCREEN
 // ============================================
 function handleSplash() {
@@ -1171,6 +1374,7 @@ function setupAuth() {
             DB.onLogout();
         }
         updateHeader();
+        updateAdminVisibility();
         renderDashboard();
         if (currentPage === 'medications') renderMedications();
         if (currentPage === 'appointments') renderAppointments();
@@ -1368,6 +1572,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMedDaySelector();
     setupAuth();
     setupNotifications();
+    setupAdmin();
     handleSplash();
 
     // Log Capacitor plugin availability
