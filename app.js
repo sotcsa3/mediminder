@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '1.3.20';
+const APP_VERSION = '1.3.21';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -14,6 +14,15 @@ function isAdmin() {
 // ============================================
 // UTILITY HELPERS
 // ============================================
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
 }
@@ -389,7 +398,7 @@ function renderDashboardMeds() {
                     ${slot.taken ? '✓' : ''}
                 </button>
                 <div class="med-item-info">
-                    <div class="med-item-name">${slot.med.name} ${slot.med.dosage}</div>
+                    <div class="med-item-name">${escapeHtml(slot.med.name)} ${escapeHtml(slot.med.dosage)}</div>
                     <div class="med-item-dosage">${getFrequencyLabel(slot.med.frequency)}</div>
                 </div>
             </div>
@@ -428,8 +437,8 @@ function renderDashboardAppointment() {
 
     container.innerHTML = `
         <div class="dashboard-appt-card">
-            <div class="dashboard-appt-doctor">${next.doctorName}</div>
-            ${next.specialty ? `<div class="dashboard-appt-specialty">${next.specialty}</div>` : ''}
+            <div class="dashboard-appt-doctor">${escapeHtml(next.doctorName)}</div>
+            ${next.specialty ? `<div class="dashboard-appt-specialty">${escapeHtml(next.specialty)}</div>` : ''}
             <div class="dashboard-appt-detail">
                 <span class="dashboard-appt-detail-icon">📅</span>
                 ${formatDateTime(next.date, next.time)}
@@ -437,13 +446,13 @@ function renderDashboardAppointment() {
             ${next.location ? `
                 <div class="dashboard-appt-detail">
                     <span class="dashboard-appt-detail-icon">📍</span>
-                    ${next.location}
+                    ${escapeHtml(next.location)}
                 </div>
             ` : ''}
             ${next.notes ? `
                 <div class="dashboard-appt-detail" style="margin-top:6px; font-style:italic; color:#9E9E9E;">
                     <span class="dashboard-appt-detail-icon">📝</span>
-                    ${next.notes}
+                    ${escapeHtml(next.notes)}
                 </div>
             ` : ''}
         </div>
@@ -498,8 +507,8 @@ function renderMedications() {
             <div class="med-card ${allTaken ? 'is-taken' : ''}" data-med-id="${med.id}">
                 <div class="med-card-header">
                     <div>
-                        <div class="med-card-name">${med.name}</div>
-                        <div class="med-card-dosage">${med.dosage}</div>
+                        <div class="med-card-name">${escapeHtml(med.name)}</div>
+                        <div class="med-card-dosage">${escapeHtml(med.dosage)}</div>
                     </div>
                     <div class="med-card-actions">
                         <button class="med-card-action edit" data-med-id="${med.id}" aria-label="Szerkesztés">✏️</button>
@@ -509,7 +518,7 @@ function renderMedications() {
                 <div class="med-card-schedule">
                     🔄 ${getFrequencyLabel(med.frequency)}
                 </div>
-                ${med.notes ? `<div class="med-card-notes">💬 ${med.notes}</div>` : ''}
+                ${med.notes ? `<div class="med-card-notes">💬 ${escapeHtml(med.notes)}</div>` : ''}
                 <div class="med-card-times">
                     ${med.times.map(time => {
             const taken = isMedTaken(med.id, today, time);
@@ -621,8 +630,8 @@ function renderUpcomingAppointments(appts) {
         <div class="appt-card" data-appt-id="${appt.id}">
             <div class="appt-card-header">
                 <div>
-                    <div class="appt-doctor">${appt.doctorName}</div>
-                    ${appt.specialty ? `<span class="appt-specialty">${appt.specialty}</span>` : ''}
+                    <div class="appt-doctor">${escapeHtml(appt.doctorName)}</div>
+                    ${appt.specialty ? `<span class="appt-specialty">${escapeHtml(appt.specialty)}</span>` : ''}
                 </div>
                 <div class="appt-card-actions">
                     <button class="med-card-action edit" data-appt-id="${appt.id}" aria-label="Szerkesztés">✏️</button>
@@ -636,10 +645,10 @@ function renderUpcomingAppointments(appts) {
             ${appt.location ? `
                 <div class="appt-detail">
                     <span class="appt-detail-icon">📍</span>
-                    ${appt.location}
+                    ${escapeHtml(appt.location)}
                 </div>
             ` : ''}
-            ${appt.notes ? `<div class="appt-notes">📝 ${appt.notes}</div>` : ''}
+            ${appt.notes ? `<div class="appt-notes">📝 ${escapeHtml(appt.notes)}</div>` : ''}
             <div class="appt-status-row">
                 <button class="appt-status-btn btn-done" data-appt-id="${appt.id}" data-status="done">
                     ✅ Megtörtént
@@ -708,8 +717,8 @@ function renderPastAppointments(appts) {
         <div class="appt-card past-card status-${appt.status}" data-appt-id="${appt.id}">
             <div class="appt-card-header">
                 <div>
-                    <div class="appt-doctor">${appt.doctorName}</div>
-                    ${appt.specialty ? `<span class="appt-specialty">${appt.specialty}</span>` : ''}
+                    <div class="appt-doctor">${escapeHtml(appt.doctorName)}</div>
+                    ${appt.specialty ? `<span class="appt-specialty">${escapeHtml(appt.specialty)}</span>` : ''}
                 </div>
                 <div class="appt-card-actions">
                     <button class="med-card-action delete" data-appt-id="${appt.id}" aria-label="Törlés">🗑️</button>
@@ -1010,11 +1019,11 @@ async function renderAdmin() {
         }
 
         listEl.innerHTML = users.map(user => `
-            <div class="admin-user-card" data-uid="${user.uid}">
+            <div class="admin-user-card" data-uid="${escapeHtml(user.uid)}">
                 <div class="admin-user-info">
-                    <div class="admin-user-name">${user.name || 'Névtelen'}</div>
-                    <div class="admin-user-email">${user.email || 'Nincs email'}</div>
-                    <div class="admin-user-uid">${user.uid}</div>
+                    <div class="admin-user-name">${escapeHtml(user.name || 'Névtelen')}</div>
+                    <div class="admin-user-email">${escapeHtml(user.email || 'Nincs email')}</div>
+                    <div class="admin-user-uid">${escapeHtml(user.uid)}</div>
                 </div>
                 <span class="admin-user-arrow">→</span>
             </div>
@@ -1069,8 +1078,8 @@ async function renderAdminUserDetail(userId) {
                 <tbody>
                     ${meds.map(m => `
                         <tr>
-                            <td><strong>${m.name || '-'}</strong></td>
-                            <td>${m.dosage || '-'}</td>
+                            <td><strong>${escapeHtml(m.name || '-')}</strong></td>
+                            <td>${escapeHtml(m.dosage || '-')}</td>
                             <td>${getFrequencyLabel(m.frequency)}</td>
                             <td>${(m.times || []).join(', ')}</td>
                         </tr>
@@ -1107,7 +1116,7 @@ async function renderAdminUserDetail(userId) {
                         <tr>
                             <td>${l.date || '-'}</td>
                             <td>${l.time || '-'}</td>
-                            <td>${medMap[l.medId] || l.medId || '-'}</td>
+                            <td>${medMap[l.medId] ? escapeHtml(medMap[l.medId]) : escapeHtml(l.medId || '-')}</td>
                             <td><span class="admin-badge ${l.taken ? 'taken' : 'not-taken'}">${l.taken ? '✅ Bevéve' : '❌ Nem'}</span></td>
                             <td>${l.takenAt ? new Date(l.takenAt).toLocaleString('hu-HU') : '-'}</td>
                         </tr>
@@ -1132,8 +1141,8 @@ async function renderAdminUserDetail(userId) {
                         <tr>
                             <td>${a.date || '-'}</td>
                             <td>${a.time || '-'}</td>
-                            <td>${a.doctorName || '-'}</td>
-                            <td>${a.specialty || '-'}</td>
+                            <td>${escapeHtml(a.doctorName || '-')}</td>
+                            <td>${escapeHtml(a.specialty || '-')}</td>
                             <td><span class="admin-badge status-${a.status || 'pending'}">${a.status === 'done' ? '✅ Megtörtént' :
                 a.status === 'missed' ? '❌ Elmaradt' :
                     '⏳ Függőben'
