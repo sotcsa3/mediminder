@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '1.3.17';
+const APP_VERSION = '1.3.19';
 
 // NOTE: DB object is now defined in firebase-db.js
 
@@ -179,7 +179,6 @@ function seedSampleData() {
             }
         ]);
 
-        DB.saveUser({ name: 'Anna' });
     }
 }
 
@@ -313,8 +312,14 @@ function setupNavigation() {
 // HEADER
 // ============================================
 function updateHeader() {
-    const user = DB.getUser();
-    document.getElementById('header-greeting').textContent = `${getGreeting()}, ${user.name}!`;
+    const greeting = getGreeting();
+    if (DB.isLoggedIn()) {
+        const user = DB.getUser();
+        const name = user.name || (auth.currentUser?.displayName) || (auth.currentUser?.email?.split('@')[0]);
+        document.getElementById('header-greeting').textContent = name ? `${greeting}, ${name}!` : `${greeting}`;
+    } else {
+        document.getElementById('header-greeting').textContent = greeting;
+    }
     document.getElementById('header-date').textContent = formatDateLong(todayStr());
 
     // Update account button
