@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '1.3.21';
+const APP_VERSION = '1.3.22';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -133,67 +133,7 @@ function getTimeSelectValue(wrapper) {
 // SAMPLE DATA
 // ============================================
 function seedSampleData() {
-    if (DB.getMedications().length === 0 && DB.getAppointments().length === 0) {
-        const today = todayStr();
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 3);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-        const pastDate = new Date();
-        pastDate.setDate(pastDate.getDate() - 5);
-        const pastStr = pastDate.toISOString().split('T')[0];
-
-        DB.saveMedications([
-            {
-                id: generateId(),
-                name: 'Metformin',
-                dosage: '500mg',
-                frequency: 'daily2',
-                times: ['08:00', '20:00'],
-                notes: 'Étkezés után'
-            },
-            {
-                id: generateId(),
-                name: 'Aspirin',
-                dosage: '100mg',
-                frequency: 'daily1',
-                times: ['12:00'],
-                notes: ''
-            },
-            {
-                id: generateId(),
-                name: 'Atorvastatin',
-                dosage: '20mg',
-                frequency: 'daily1',
-                times: ['20:00'],
-                notes: 'Lefekvés előtt'
-            }
-        ]);
-
-        DB.saveAppointments([
-            {
-                id: generateId(),
-                doctorName: 'Dr. Kovács Péter',
-                specialty: 'Belgyógyászat',
-                date: tomorrowStr,
-                time: '10:00',
-                location: 'Klinika, 3. emelet',
-                notes: 'Vérvétel eredményét vinni',
-                status: 'pending'
-            },
-            {
-                id: generateId(),
-                doctorName: 'Dr. Nagy Éva',
-                specialty: 'Szemészet',
-                date: pastStr,
-                time: '14:00',
-                location: 'Szemklinika, földszint',
-                notes: '',
-                status: 'done'
-            }
-        ]);
-
-    }
+    // Sample data removed — new users start with empty state
 }
 
 // ============================================
@@ -251,11 +191,22 @@ function areMedAllTimesTakenToday(medId) {
 // TOAST
 // ============================================
 let toastTimer = null;
-function showToast(message) {
+let undoCallback = null;
+
+function showToast(message, undoFn = null) {
     const el = document.getElementById('toast');
     const msg = document.getElementById('toast-message');
+    const undoBtn = document.getElementById('toast-undo-btn');
     msg.textContent = message;
     el.classList.remove('hidden');
+
+    // Handle undo
+    undoCallback = undoFn;
+    if (undoFn) {
+        undoBtn.classList.remove('hidden');
+    } else {
+        undoBtn.classList.add('hidden');
+    }
 
     requestAnimationFrame(() => {
         el.classList.add('show');
@@ -264,8 +215,52 @@ function showToast(message) {
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
         el.classList.remove('show');
+        undoCallback = null;
+        setTimeout(() => {
+            el.classList.add('hidden');
+            undoBtn.classList.add('hidden');
+        }, 400);
+    }, undoFn ? 5000 : 2500);
+}
+
+function setupUndoToast() {
+    document.getElementById('toast-undo-btn').addEventListener('click', () => {
+        if (undoCallback) {
+            undoCallback();
+            undoCallback = null;
+        }
+        const el = document.getElementById('toast');
+        el.classList.remove('show');
+        clearTimeout(toastTimer);
         setTimeout(() => el.classList.add('hidden'), 400);
-    }, 2500);
+    });
+}
+
+// ============================================
+// OFFLINE DETECTION
+// ============================================
+function setupOfflineDetection() {
+    const banner = document.getElementById('offline-banner');
+
+    function updateOnlineStatus() {
+        if (navigator.onLine) {
+            banner.classList.add('hidden');
+        } else {
+            banner.classList.remove('hidden');
+        }
+    }
+
+    window.addEventListener('online', () => {
+        banner.classList.add('hidden');
+        showToast('✅ Kapcsolat helyreállt');
+    });
+
+    window.addEventListener('offline', () => {
+        banner.classList.remove('hidden');
+    });
+
+    // Check on init
+    updateOnlineStatus();
 }
 
 // ============================================
@@ -572,19 +567,22 @@ function renderMedications() {
 
     // Delete buttons
     container.querySelectorAll('.med-card-action.delete').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const confirmed = await showConfirm(
-                'Gyógyszer törlése',
-                'Biztosan törli ezt a gyógyszert? Ez a művelet nem vonható vissza.',
-                '💊'
-            );
-            if (confirmed) {
-                const meds = DB.getMedications().filter(m => m.id !== btn.dataset.medId);
-                DB.saveMedications(meds);
+            const medId = btn.dataset.medId;
+            const meds = DB.getMedications();
+            const deletedMed = meds.find(m => m.id === medId);
+            const remaining = meds.filter(m => m.id !== medId);
+            DB.saveMedications(remaining);
+            renderMedications();
+            showToast('🗑️ Gyógyszer törölve', () => {
+                // Undo: restore the deleted med
+                const current = DB.getMedications();
+                current.push(deletedMed);
+                DB.saveMedications(current);
                 renderMedications();
-                showToast('🗑️ Gyógyszer törölve');
-            }
+                showToast('↩️ Visszavonva');
+            });
         });
     });
 }
@@ -684,19 +682,21 @@ function renderUpcomingAppointments(appts) {
 
     // Delete buttons
     container.querySelectorAll('.med-card-action.delete').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const confirmed = await showConfirm(
-                'Találkozó törlése',
-                'Biztosan törli ezt a találkozót?',
-                '🩺'
-            );
-            if (confirmed) {
-                const appts = DB.getAppointments().filter(a => a.id !== btn.dataset.apptId);
-                DB.saveAppointments(appts);
+            const apptId = btn.dataset.apptId;
+            const allAppts = DB.getAppointments();
+            const deletedAppt = allAppts.find(a => a.id === apptId);
+            const remaining = allAppts.filter(a => a.id !== apptId);
+            DB.saveAppointments(remaining);
+            renderAppointments();
+            showToast('🗑️ Találkozó törölve', () => {
+                const current = DB.getAppointments();
+                current.push(deletedAppt);
+                DB.saveAppointments(current);
                 renderAppointments();
-                showToast('🗑️ Találkozó törölve');
-            }
+                showToast('↩️ Visszavonva');
+            });
         });
     });
 }
@@ -736,19 +736,21 @@ function renderPastAppointments(appts) {
 
     // Delete buttons for past appointments
     container.querySelectorAll('.med-card-action.delete').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const confirmed = await showConfirm(
-                'Találkozó törlése',
-                'Biztosan törli ezt a korábbi találkozót?',
-                '🩺'
-            );
-            if (confirmed) {
-                const appts = DB.getAppointments().filter(a => a.id !== btn.dataset.apptId);
-                DB.saveAppointments(appts);
+            const apptId = btn.dataset.apptId;
+            const allAppts = DB.getAppointments();
+            const deletedAppt = allAppts.find(a => a.id === apptId);
+            const remaining = allAppts.filter(a => a.id !== apptId);
+            DB.saveAppointments(remaining);
+            renderAppointments();
+            showToast('🗑️ Találkozó törölve', () => {
+                const current = DB.getAppointments();
+                current.push(deletedAppt);
+                DB.saveAppointments(current);
                 renderAppointments();
-                showToast('🗑️ Találkozó törölve');
-            }
+                showToast('↩️ Visszavonva');
+            });
         });
     });
 }
@@ -1582,6 +1584,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAuth();
     setupNotifications();
     setupAdmin();
+    setupUndoToast();
+    setupOfflineDetection();
     handleSplash();
 
     // Log Capacitor plugin availability

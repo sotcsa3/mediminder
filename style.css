@@ -1511,6 +1511,7 @@ textarea {
         transition-duration: 0.01ms !important;
     }
 }
+
 /* --- Custom Time Selector (24h) --- */
 .form-row {
     display: flex;
@@ -1587,6 +1588,7 @@ textarea {
     background: rgba(239, 68, 68, 0.2);
     transform: scale(1.05);
 }
+
 /* test bump */
 
 /* ============================================
@@ -1777,4 +1779,61 @@ textarea {
     color: var(--color-text-light);
     font-size: var(--font-size-sm);
     font-style: italic;
+}
+
+/* ============================================
+   OFFLINE BANNER
+   ============================================ */
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 3000;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    text-align: center;
+    padding: 10px 16px;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
+    animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.offline-banner.hidden {
+    display: none !important;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   UNDO TOAST
+   ============================================ */
+.toast-undo-btn {
+    background: transparent;
+    border: 2px solid #fff;
+    color: #fff;
+    padding: 4px 14px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: all var(--transition);
+}
+
+.toast-undo-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.toast-undo-btn.hidden {
+    display: none;
 }
