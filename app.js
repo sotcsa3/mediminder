@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.0.3';
+const APP_VERSION = '2.0.4';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -1375,6 +1375,11 @@ function setupAuth() {
                 email: currentUser.email
             });
             await DB.onLogin(currentUser.id);
+
+            // Clear the hash from the URL
+            if (window.location.hash && window.location.hash.includes('access_token')) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
         } else {
             console.log('[Auth] Logged out');
             DB.onLogout();
