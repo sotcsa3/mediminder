@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.0.4';
+const APP_VERSION = '2.0.5';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -1610,5 +1610,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(err => {
             console.error('[SW] Registration failed:', err);
         });
+    }
+
+    // Immediate URL cleanup for Supabase OAuth redirects
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+        console.log('[Auth] Cleaning up URL hash...');
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
 });
