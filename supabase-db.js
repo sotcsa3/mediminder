@@ -114,24 +114,35 @@ const DB = {
         this._stopListening(); // clean up if needed
 
         // Subscribe to changes for this user
-        // We can use one channel for all tables or separate channels
+        // OPTIMIZATION: Use a SINGLE channel for all tables to prevent WebSocket errors
 
-        ['medications', 'med_logs', 'appointments'].forEach(table => {
-            const channel = supabaseClient
-                .channel(`public:${table}:${this._userId}`)
-                .on('postgres_changes',
-                    { event: '*', schema: 'public', table: table, filter: `user_id=eq.${this._userId}` },
-                    (payload) => {
-                        console.log(`[DB] Change received for ${table}:`, payload);
-                        // Refresh local data from server to ensure consistency
-                        // Or we could apply the delta. For simplicity, reloading is safer for now.
-                        this._reloadTable(table);
-                    }
-                )
-                .subscribe();
+        console.log('[DB] Starting Realtime listener...');
 
-            this._channels.push(channel);
-        });
+        const channel = supabaseClient
+            .channel(`public:user:${this._userId}`)
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'medications', filter: `user_id=eq.${this._userId}` },
+                () => { this._reloadTable('medications'); }
+            )
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'med_logs', filter: `user_id=eq.${this._userId}` },
+                () => { this._reloadTable('med_logs'); }
+            )
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'appointments', filter: `user_id=eq.${this._userId}` },
+                () => { this._reloadTable('appointments'); }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('[DB] Realtime connected!');
+                } else if (status === 'CLOSED') {
+                    console.log('[DB] Realtime disconnected');
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error('[DB] Realtime channel error');
+                }
+            });
+
+        this._channels.push(channel);
     },
 
     async _reloadTable(table) {
