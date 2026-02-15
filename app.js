@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.0.7';
+const APP_VERSION = '2.0.9';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -1341,7 +1341,7 @@ function setupAuth() {
             const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin
+                    redirectTo: window.location.origin + window.location.pathname
                 }
             });
 
