@@ -222,7 +222,11 @@ const DB = {
     onLogout() {
         this._stopListening();
         this._userId = null;
-        console.log('[DB] User logged out');
+        this._localSet(this.KEYS.MEDICATIONS, []);
+        this._localSet(this.KEYS.MED_LOGS, []);
+        this._localSet(this.KEYS.APPOINTMENTS, []);
+        this._localSet(this.KEYS.USER, null);
+        console.log('[DB] User logged out and local data cleared');
     },
 
     // ── Public API ───────────────────────────

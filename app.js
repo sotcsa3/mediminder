@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.0.9';
+const APP_VERSION = '2.1.1';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -1357,9 +1357,27 @@ function setupAuth() {
 
     // Logout
     document.getElementById('btn-logout').addEventListener('click', async () => {
-        await supabaseClient.auth.signOut();
-        closeAccountModal();
-        showToast('👋 Kijelentkezve');
+        const logoutBtn = document.getElementById('btn-logout');
+        logoutBtn.disabled = true;
+        logoutBtn.textContent = 'Kijelentkezés...';
+
+        try {
+            await supabaseClient.auth.signOut();
+            // Force local cleanup even if signOut technically succeeds (it manages session)
+            DB.onLogout();
+
+            closeAccountModal();
+            showToast('👋 Kijelentkezve');
+
+            // Force reload to clear any in-memory state quirks
+            setTimeout(() => window.location.reload(), 500);
+
+        } catch (error) {
+            console.error('[Auth] Logout error:', error);
+            showToast('Hiba a kijelentkezéskor');
+            logoutBtn.disabled = false;
+            logoutBtn.textContent = 'Kijelentkezés';
+        }
     });
 
 
