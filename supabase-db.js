@@ -39,7 +39,7 @@ const DB = {
     async _loadFromSupabase(table, localKey) {
         if (!this._userId) return;
         try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from(table)
                 .select('*')
                 .eq('user_id', this._userId);
@@ -62,7 +62,7 @@ const DB = {
             // Ensure user_id is set
             const itemToSave = { ...item, user_id: this._userId };
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from(table)
                 .upsert(itemToSave);
 
@@ -75,7 +75,7 @@ const DB = {
     async _deleteFromSupabase(table, itemId) {
         if (!this._userId) return;
         try {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from(table)
                 .delete()
                 .eq('id', itemId)
@@ -96,7 +96,7 @@ const DB = {
             // Note: Supabase upsert accepts an array
             const itemsToSave = items.map(item => ({ ...item, user_id: this._userId }));
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from(table)
                 .upsert(itemsToSave);
 
@@ -117,7 +117,7 @@ const DB = {
         // We can use one channel for all tables or separate channels
 
         ['medications', 'med_logs', 'appointments'].forEach(table => {
-            const channel = supabase
+            const channel = supabaseClient
                 .channel(`public:${table}:${this._userId}`)
                 .on('postgres_changes',
                     { event: '*', schema: 'public', table: table, filter: `user_id=eq.${this._userId}` },
@@ -149,7 +149,7 @@ const DB = {
     },
 
     _stopListening() {
-        this._channels.forEach(channel => supabase.removeChannel(channel));
+        this._channels.forEach(channel => supabaseClient.removeChannel(channel));
         this._channels = [];
     },
 
@@ -166,7 +166,7 @@ const DB = {
         if (!this._userId) return;
 
         // Check if user already has data in Supabase (check medications)
-        const { count, error } = await supabase
+        const { count, error } = await supabaseClient
             .from('medications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', this._userId);
@@ -303,14 +303,14 @@ const DB = {
             // Delete items not in the new list
             // "id" not in currentIds
             if (currentIds.length > 0) {
-                await supabase
+                await supabaseClient
                     .from(table)
                     .delete()
                     .eq('user_id', this._userId)
                     .not('id', 'in', `(${currentIds.join(',')})`);
             } else {
                 // If list is empty, delete everything
-                await supabase
+                await supabaseClient
                     .from(table)
                     .delete()
                     .eq('user_id', this._userId);
@@ -319,7 +319,7 @@ const DB = {
             // 2. Upsert all current items
             if (items.length > 0) {
                 const itemsToSave = items.map(item => ({ ...item, user_id: this._userId }));
-                await supabase.from(table).upsert(itemsToSave);
+                await supabaseClient.from(table).upsert(itemsToSave);
             }
 
         } catch (e) {
@@ -335,7 +335,7 @@ const DB = {
         try {
             // Try to fetch from a public profiles table if it exists
             // Or fail gracefully if we can't list users
-            const { data, error } = await supabase.from('users').select('*');
+            const { data, error } = await supabaseClient.from('users').select('*');
             if (error) throw error;
             return data.map(u => ({ uid: u.id, ...u }));
         } catch (e) {
@@ -346,7 +346,7 @@ const DB = {
 
     async admin_getUserMedications(userId) {
         try {
-            const { data } = await supabase.from('medications').select('*').eq('user_id', userId);
+            const { data } = await supabaseClient.from('medications').select('*').eq('user_id', userId);
             return data || [];
         } catch (e) {
             console.error('[DB Admin] Error loading medications:', e);
@@ -356,7 +356,7 @@ const DB = {
 
     async admin_getUserMedLogs(userId) {
         try {
-            const { data } = await supabase.from('med_logs').select('*').eq('user_id', userId);
+            const { data } = await supabaseClient.from('med_logs').select('*').eq('user_id', userId);
             return data || [];
         } catch (e) {
             console.error('[DB Admin] Error loading medLogs:', e);
@@ -366,7 +366,7 @@ const DB = {
 
     async admin_getUserAppointments(userId) {
         try {
-            const { data } = await supabase.from('appointments').select('*').eq('user_id', userId);
+            const { data } = await supabaseClient.from('appointments').select('*').eq('user_id', userId);
             return data || [];
         } catch (e) {
             console.error('[DB Admin] Error loading appointments:', e);

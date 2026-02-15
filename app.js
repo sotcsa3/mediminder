@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.0.2';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -1297,7 +1297,7 @@ function setupAuth() {
 
         try {
             if (authMode === 'register') {
-                const { data, error } = await supabase.auth.signUp({
+                const { data, error } = await supabaseClient.auth.signUp({
                     email,
                     password,
                     options: {
@@ -1313,7 +1313,7 @@ function setupAuth() {
                 DB.saveUser({ name, email });
                 showToast('✅ Sikeres regisztráció!');
             } else {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email,
                     password
                 });
@@ -1338,7 +1338,7 @@ function setupAuth() {
 
         try {
             // Web / Supabase OAuth
-            const { data, error } = await supabase.auth.signInWithOAuth({
+            const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: window.location.origin
@@ -1357,14 +1357,14 @@ function setupAuth() {
 
     // Logout
     document.getElementById('btn-logout').addEventListener('click', async () => {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
         closeAccountModal();
         showToast('👋 Kijelentkezve');
     });
 
 
     // Supabase auth state listener
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
         currentUser = session?.user || null;
 
         if (currentUser) {
