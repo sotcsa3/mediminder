@@ -3,14 +3,14 @@
    Cache-first strategy for offline support
    ============================================ */
 
-const CACHE_NAME = 'mediminder-v2.0.2';
+const CACHE_NAME = 'mediminder-v2.0.3';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './app.js',
-    './firebase-config.js',
-    './firebase-db.js',
+    './supabase-config.js',
+    './supabase-db.js',
     './manifest.json',
     './icons/icon-192.png',
     './icons/icon-512.png'
