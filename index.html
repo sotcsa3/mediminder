@@ -46,7 +46,7 @@
             <div class="splash-loader">
                 <div class="splash-loader-bar"></div>
             </div>
-            <p class="splash-version" id="splash-version">v1.3.22</p>
+            <p class="splash-version" id="splash-version">v2.0.1</p>
         </div>
     </div>
 
@@ -258,7 +258,7 @@
                 <span class="nav-label">Admin</span>
             </button>
         </nav>
-        <div class="app-version" id="app-version">v1.3.22</div>
+        <div class="app-version" id="app-version">v2.0.1</div>
 
         <!-- ============================================ -->
         <!-- MODAL: ADD/EDIT MEDICATION                    -->
@@ -467,14 +467,12 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
     <!-- App scripts (order matters!) -->
-    <script src="firebase-config.js"></script>
-    <script src="firebase-db.js"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-db.js"></script>
     <script src="app.js"></script>
 
 

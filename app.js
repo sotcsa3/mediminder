@@ -2,13 +2,15 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '1.3.22';
+const APP_VERSION = '2.0.1';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
 
+let currentUser = null;
+
 function isAdmin() {
-    return DB.isLoggedIn() && auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
+    return DB.isLoggedIn() && currentUser && currentUser.email === ADMIN_EMAIL;
 }
 
 // ============================================
@@ -325,7 +327,7 @@ function updateHeader() {
     const greeting = getGreeting();
     if (DB.isLoggedIn()) {
         const user = DB.getUser();
-        const name = user.name || (auth.currentUser?.displayName) || (auth.currentUser?.email?.split('@')[0]);
+        const name = user.name || (currentUser?.user_metadata?.full_name) || (currentUser?.email?.split('@')[0]);
         document.getElementById('header-greeting').textContent = name ? `${greeting}, ${name}!` : `${greeting}`;
     } else {
         document.getElementById('header-greeting').textContent = greeting;
@@ -1198,7 +1200,7 @@ let authMode = 'login'; // 'login' or 'register'
 function openAuthModal() {
     if (DB.isLoggedIn()) {
         // Show account info modal
-        const user = auth.currentUser;
+        const user = currentUser;
         document.getElementById('account-user-name').textContent = DB.getUser().name || 'Felhasználó';
         document.getElementById('account-user-email').textContent = user?.email || '';
         document.getElementById('modal-account').classList.remove('hidden');
@@ -1295,19 +1297,33 @@ function setupAuth() {
 
         try {
             if (authMode === 'register') {
-                const cred = await auth.createUserWithEmailAndPassword(email, password);
-                // Set user name from email
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: email.split('@')[0]
+                        }
+                    }
+                });
+                if (error) throw error;
+
+                // Set user name from email locally as well
                 const name = email.split('@')[0];
                 DB.saveUser({ name, email });
                 showToast('✅ Sikeres regisztráció!');
             } else {
-                await auth.signInWithEmailAndPassword(email, password);
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                if (error) throw error;
                 showToast('✅ Sikeres bejelentkezés!');
             }
             closeAuthModal();
         } catch (error) {
-            console.error('[Auth] Error:', error.code, error.message);
-            showAuthError(getAuthErrorMessage(error.code));
+            console.error('[Auth] Error:', error.message);
+            showAuthError(getAuthErrorMessage(error.message) || error.message); // Fallback to raw message if mapping fails
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = authMode === 'login' ? 'Bejelentkezés' : 'Regisztráció';
@@ -1320,66 +1336,45 @@ function setupAuth() {
         btn.disabled = true;
         document.getElementById('auth-error').classList.add('hidden');
 
-        if (isMobileOrStandalone() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication) {
-            // Native Google Sign-In via @capacitor-firebase/authentication
-            try {
-                console.log('[Auth] Starting native Firebase Google Sign-In...');
-                const result = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithGoogle();
-                console.log('[Auth] Native sign-in result:', result);
+        try {
+            // Web / Supabase OAuth
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
 
-                // The plugin handles Firebase Auth natively, but we also need to sign in on the web layer
-                if (result && result.credential && result.credential.idToken) {
-                    const credential = firebase.auth.GoogleAuthProvider.credential(result.credential.idToken);
-                    await auth.signInWithCredential(credential);
-                }
-                // Auth state listener will handle the rest (onAuthStateChanged)
-                closeAuthModal();
-                showToast('✅ Sikeres bejelentkezés!');
-            } catch (error) {
-                console.error('[Auth] Native Google Sign-In error:', error);
-                const msg = error.message || '';
-                if (!msg.includes('cancel') && !msg.includes('dismissed')) {
-                    showAuthError('Google bejelentkezés sikertelen. Próbáld újra!');
-                }
-            } finally {
-                btn.disabled = false;
-            }
-        } else {
-            // Desktop Browser: Use Popup
-            const provider = new firebase.auth.GoogleAuthProvider();
-            try {
-                const result = await auth.signInWithPopup(provider);
-                const user = result.user;
-                DB.saveUser({
-                    name: user.displayName || user.email.split('@')[0],
-                    email: user.email
-                });
-                closeAuthModal();
-                showToast('✅ Sikeres bejelentkezés!');
-            } catch (error) {
-                console.error('[Auth] Google Popup error:', error.code, error.message);
-                if (error.code !== 'auth/popup-closed-by-user') {
-                    showAuthError(getAuthErrorMessage(error.code));
-                }
-            } finally {
-                btn.disabled = false;
-            }
+            if (error) throw error;
+            // Note: This will redirect the page, so no need to close modal or show toast here
+
+        } catch (error) {
+            console.error('[Auth] Google Sign-in error:', error);
+            showAuthError('Google bejelentkezés sikertelen. Próbáld újra!');
+            btn.disabled = false;
         }
     });
 
     // Logout
     document.getElementById('btn-logout').addEventListener('click', async () => {
-        await auth.signOut();
+        await supabase.auth.signOut();
         closeAccountModal();
         showToast('👋 Kijelentkezve');
     });
 
 
-    // Firebase auth state listener
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            console.log('[Auth] Logged in:', user.email);
-            await DB.onLogin(user.uid);
+    // Supabase auth state listener
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        currentUser = session?.user || null;
+
+        if (currentUser) {
+            console.log('[Auth] Logged in:', currentUser.email);
+            // Save user info if available
+            DB.saveUser({
+                name: currentUser.user_metadata?.full_name || currentUser.email.split('@')[0],
+                email: currentUser.email
+            });
+            await DB.onLogin(currentUser.id);
         } else {
             console.log('[Auth] Logged out');
             DB.onLogout();

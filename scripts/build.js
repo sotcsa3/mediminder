@@ -7,8 +7,8 @@ const srcFiles = [
     'style.css',
     'manifest.json',
     'sw.js',
-    'firebase-config.js',
-    'firebase-db.js'
+    'supabase-config.js',
+    'supabase-db.js'
 ];
 const srcDirs = ['icons'];
 
