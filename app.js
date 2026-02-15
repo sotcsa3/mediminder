@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.0.5';
+const APP_VERSION = '2.0.7';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
