@@ -3,7 +3,7 @@
    Cache-first strategy for offline support
    ============================================ */
 
-const CACHE_NAME = 'mediminder-v2.1.4';
+const CACHE_NAME = 'mediminder-v2.1.6';
 const ASSETS = [
     './',
     './index.html',
@@ -22,7 +22,14 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME)
             .then((cache) => {
                 console.log('[SW] Pre-caching assets');
-                return cache.addAll(ASSETS);
+                // Force network fetch to avoid getting stale assets from browser cache
+                const stack = ASSETS.map(url => {
+                    return fetch(url, { cache: 'reload' }).then(response => {
+                        if (!response.ok) throw Error('File not found: ' + url);
+                        return cache.put(url, response);
+                    });
+                });
+                return Promise.all(stack);
             })
             .then(() => self.skipWaiting())
     );
