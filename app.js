@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.1.16';
+const APP_VERSION = '2.1.17';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in backend-db.js
@@ -1407,7 +1407,7 @@ function setupAuth() {
 
         try {
             google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
+                client_id: window.API_CONFIG?.googleClientId || GOOGLE_CLIENT_ID,
                 callback: handleGoogleCredentialResponse
             });
 
