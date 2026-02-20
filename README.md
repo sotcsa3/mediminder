@@ -19,15 +19,36 @@ A Progressive Web Application for medication and appointment management, built w
 - Maven 3.6+
 - PostgreSQL 15+
 - Node.js (optional, for development server)
+- Docker & Docker Compose (for containerized deployment)
 
-### Option 1: Docker Compose (Recommended)
+### ⚙️ Environment Setup
+
+Before running the application, copy the example environment file and configure your secrets:
+```bash
+cp .env.example .env
+# Edit .env and supply your Google Client ID, DB passwords, and JWT secret
+```
+
+### Option 1: Development Server (Docker Compose)
 
 ```bash
-# Start all services
+# Start all development services
 docker-compose up -d
 
 # The API will be available at http://localhost:8080/api
-# Run the frontend with any static server (e.g., Live Server in VS Code)
+# Open index.html in a browser or use a live server extension
+```
+
+### Option 2: Production Server (Docker Compose)
+
+The production setup includes an Nginx reverse proxy, SSL termination, and rate limiting.
+
+```bash
+# 1. Generate development SSL certs (Skip if using Let's Encrypt in production)
+./scripts/generate-ssl-certs.sh
+
+# 2. Start all production services
+docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
 ```
 
 ### Option 2: Manual Setup
@@ -96,7 +117,11 @@ docker-compose up -d
 ├── style.css                  # Styles
 ├── sw.js                      # Service Worker
 ├── manifest.json              # PWA manifest
-├── docker-compose.yml         # Docker Compose configuration
+├── nginx/                     # Reverse proxy and SSL configuration
+├── scripts/                   # Utility scripts (e.g. SSL cert generation)
+├── docker-compose.yml         # Development Docker configuration
+├── docker-compose.production.yml # Production Docker configuration
+├── .env.example               # Environment variables template
 └── README.md                  # This file
 ```
 
@@ -123,32 +148,33 @@ docker-compose up -d
 - `POST /api/appointments` - Save appointments (bulk)
 - `DELETE /api/appointments` - Delete all appointments
 
-### Health
-- `GET /api/health` - Health check endpoint
+### Monitoring & Health
+- `GET /api/health` - Basic API health check
+- `GET /actuator/health` - Detailed application health
+- `GET /actuator/prometheus` - Prometheus metrics
+- `GET /actuator/info` - Application information
 
 ## ⚙️ Configuration
 
-### Backend (application.yml)
+Configuration is primarily managed via environment variables (see `.env.example`).
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/mediminder
-    username: mediminder
-    password: mediminder123
+### Backend Properties Configuration
 
-app:
-  jwt:
-    secret: your-jwt-secret-key
-    expiration: 86400000  # 24 hours
-  cors:
-    allowed-origins: http://localhost:5500,http://localhost:3000
-```
+The backend reads properties from `application.yml`, which overrides defaults with environment variables:
+- `JWT_SECRET`: For signing auth tokens
+- `CORS_ORIGINS`: Allowed origins for CORS
+- `GOOGLE_CLIENT_ID`: For OAuth configuration
+- `DB_PASSWORD`: PostgreSQL password
 
-### Frontend (api-config.js)
+The backend also includes customizable **Rate Limiting** via Spring properties (`app.rate-limit.*`).
+
+### Frontend Configuration (`api-config.js`)
+
+The frontend configures its endpoint and integrations securely via injected variables or fallbacks:
 
 ```javascript
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = window.API_BASE_URL || 'http://localhost:8080/api';
+const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
 ```
 
 ## 🔐 Authentication
