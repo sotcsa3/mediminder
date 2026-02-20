@@ -3,6 +3,7 @@ package com.mediminder.controller;
 import com.mediminder.dto.AppointmentDTO;
 import com.mediminder.security.UserPrincipal;
 import com.mediminder.service.AppointmentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -17,24 +18,24 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class AppointmentController {
-    
+
     private final AppointmentService appointmentService;
-    
+
     @GetMapping
     public ResponseEntity<List<AppointmentDTO>> getAppointments(@AuthenticationPrincipal UserPrincipal principal) {
         List<AppointmentDTO> appointments = appointmentService.getAppointments(principal.getUserId());
         return ResponseEntity.ok(appointments);
     }
-    
+
     @PostMapping
     public ResponseEntity<List<AppointmentDTO>> saveAppointments(
             @AuthenticationPrincipal UserPrincipal principal,
-            @RequestBody List<AppointmentDTO> appointments) {
+            @Valid @RequestBody List<AppointmentDTO> appointments) {
         log.info("Saving {} appointments for user {}", appointments.size(), principal.getUserId());
         List<AppointmentDTO> saved = appointmentService.saveAppointments(principal.getUserId(), appointments);
         return ResponseEntity.ok(saved);
     }
-    
+
     @DeleteMapping
     public ResponseEntity<?> deleteAllAppointments(@AuthenticationPrincipal UserPrincipal principal) {
         log.info("Deleting all appointments for user {}", principal.getUserId());
