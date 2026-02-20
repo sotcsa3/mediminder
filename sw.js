@@ -3,14 +3,16 @@
    Cache-first strategy for offline support
    ============================================ */
 
-const CACHE_NAME = 'mediminder-v2.1.6';
+const CACHE_NAME = 'mediminder-v2.1.7';
+const API_BASE_URL = 'http://localhost:8080/api';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './app.js',
-    './supabase-config.js',
-    './supabase-db.js',
+    './api-config.js',
+    './api-service.js',
+    './backend-db.js',
     './manifest.json',
     './icons/icon-192.png',
     './icons/icon-512.png'
@@ -57,6 +59,25 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     // Only handle GET requests
     if (event.request.method !== 'GET') return;
+
+    // Skip API requests - always go to network
+    if (event.request.url.includes('/api/')) {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => {
+                    // Return offline response for API calls
+                    return new Response(
+                        JSON.stringify({ error: 'Offline - please check your connection' }),
+                        {
+                            status: 503,
+                            statusText: 'Service Unavailable',
+                            headers: { 'Content-Type': 'application/json' }
+                        }
+                    );
+                })
+        );
+        return;
+    }
 
     // Skip cross-origin requests (e.g. Google Fonts)
     if (!event.request.url.startsWith(self.location.origin)) {

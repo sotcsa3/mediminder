@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: mediminder-db
+    environment:
+      POSTGRES_DB: mediminder
+      POSTGRES_USER: mediminder
+      POSTGRES_PASSWORD: mediminder123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediminder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mediminder-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mediminder
+      SPRING_DATASOURCE_USERNAME: mediminder
+      SPRING_DATASOURCE_PASSWORD: mediminder123
+      JWT_SECRET: mediminder-jwt-secret-key-change-in-production-min-256-bits
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5500,http://127.0.0.1:5500
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.1.6';
+const APP_VERSION = '2.1.7';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -1296,58 +1296,55 @@ function setupAuth() {
         document.getElementById('auth-error').classList.add('hidden');
 
         try {
+            let response;
             if (authMode === 'register') {
-                const { data, error } = await supabaseClient.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            full_name: email.split('@')[0]
-                        }
-                    }
-                });
-                if (error) throw error;
-
-                // Set user name from email locally as well
-                const name = email.split('@')[0];
-                DB.saveUser({ name, email });
+                response = await ApiService.register(email, password);
                 showToast('✅ Sikeres regisztráció!');
             } else {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email,
-                    password
-                });
-                if (error) throw error;
+                response = await ApiService.login(email, password);
                 showToast('✅ Sikeres bejelentkezés!');
             }
+
+            // Set current user
+            currentUser = {
+                id: response.userId,
+                email: response.email,
+                user_metadata: { full_name: response.fullName }
+            };
+
+            // Save user info locally
+            DB.saveUser({
+                name: response.fullName || email.split('@')[0],
+                email: response.email
+            });
+
+            // Load data from backend
+            await DB.onLogin(response.userId);
+
             closeAuthModal();
+            updateHeader();
+            updateAdminVisibility();
+            renderDashboard();
         } catch (error) {
             console.error('[Auth] Error:', error.message);
-            showAuthError(getAuthErrorMessage(error.message) || error.message); // Fallback to raw message if mapping fails
+            showAuthError(getAuthErrorMessage(error.message) || error.message);
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = authMode === 'login' ? 'Bejelentkezés' : 'Regisztráció';
         }
     });
 
-    // Google Sign-In
+    // Google Sign-In (requires Google Identity Services on frontend)
     document.getElementById('btn-google-signin').addEventListener('click', async () => {
         const btn = document.getElementById('btn-google-signin');
         btn.disabled = true;
         document.getElementById('auth-error').classList.add('hidden');
 
         try {
-            // Web / Supabase OAuth
-            const { data, error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin + window.location.pathname
-                }
-            });
-
-            if (error) throw error;
-            // Note: This will redirect the page, so no need to close modal or show toast here
-
+            // For Google Sign-In, you need to integrate Google Identity Services
+            // This is a placeholder - implement Google OAuth2 flow
+            showAuthError('Google bejelentkezés még nincs implementálva. Kérjük használjon email/jelszót.');
+            btn.disabled = false;
         } catch (error) {
             console.error('[Auth] Google Sign-in error:', error);
             showAuthError('Google bejelentkezés sikertelen. Próbáld újra!');
@@ -1362,9 +1359,8 @@ function setupAuth() {
         logoutBtn.textContent = 'Kijelentkezés...';
 
         try {
-            await supabaseClient.auth.signOut();
-            // Force local cleanup even if signOut technically succeeds (it manages session)
-            DB.onLogout();
+            await DB.onLogout();
+            currentUser = null;
 
             closeAccountModal();
             showToast('👋 Kijelentkezve');
@@ -1380,36 +1376,41 @@ function setupAuth() {
         }
     });
 
+    // Check for existing token on page load
+    checkExistingSession();
+}
 
-    // Supabase auth state listener
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        currentUser = session?.user || null;
+// Check for existing session on page load
+async function checkExistingSession() {
+    const token = ApiService.getToken();
+    if (token) {
+        try {
+            const user = await ApiService.getCurrentUser();
+            if (user && user.id) {
+                currentUser = {
+                    id: user.id,
+                    email: user.email,
+                    user_metadata: { full_name: user.fullName }
+                };
 
-        if (currentUser) {
-            console.log('[Auth] Logged in:', currentUser.email);
-            // Save user info if available
-            DB.saveUser({
-                name: currentUser.user_metadata?.full_name || currentUser.email.split('@')[0],
-                email: currentUser.email
-            });
-            await DB.onLogin(currentUser.id);
+                DB.saveUser({
+                    name: user.fullName || user.email.split('@')[0],
+                    email: user.email
+                });
 
-            // Clear the hash from the URL
-            if (window.location.hash && window.location.hash.includes('access_token')) {
-                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                await DB.onLogin(user.id);
+
+                updateHeader();
+                updateAdminVisibility();
+                renderDashboard();
             }
-        } else {
-            console.log('[Auth] Logged out');
-            DB.onLogout();
+        } catch (error) {
+            console.error('[Auth] Session check failed:', error);
+            ApiService.logout();
         }
-        updateHeader();
-        updateAdminVisibility();
-        renderDashboard();
-        if (currentPage === 'medications') renderMedications();
-        if (currentPage === 'appointments') renderAppointments();
-    });
+    }
 
-    // Listen for real-time data changes from other devices
+    // Listen for data changes
     DB.onDataChange((type) => {
         console.log('[DB] Data changed:', type);
         if (currentPage === 'dashboard') renderDashboard();

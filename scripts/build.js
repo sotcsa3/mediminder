@@ -7,8 +7,9 @@ const srcFiles = [
     'style.css',
     'manifest.json',
     'sw.js',
-    'supabase-config.js',
-    'supabase-db.js'
+    'api-config.js',
+    'api-service.js',
+    'backend-db.js'
 ];
 const srcDirs = ['icons'];
 

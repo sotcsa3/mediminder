@@ -47,7 +47,7 @@
             <div class="splash-loader">
                 <div class="splash-loader-bar"></div>
             </div>
-            <p class="splash-version" id="splash-version">v2.1.6</p>
+            <p class="splash-version" id="splash-version">v2.1.7</p>
         </div>
     </div>
 
@@ -259,7 +259,7 @@
                 <span class="nav-label">Admin</span>
             </button>
         </nav>
-        <div class="app-version" id="app-version">v2.1.6</div>
+        <div class="app-version" id="app-version">v2.1.7</div>
 
         <!-- ============================================ -->
         <!-- MODAL: ADD/EDIT MEDICATION                    -->
@@ -468,12 +468,10 @@
         </div>
     </div>
 
-    <!-- Supabase SDK -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-    <!-- App scripts (order matters!) -->
-    <script src="supabase-config.js"></script>
-    <script src="supabase-db.js"></script>
+    <!-- Backend API scripts (replaces Supabase) -->
+    <script src="api-config.js"></script>
+    <script src="api-service.js"></script>
+    <script src="backend-db.js"></script>
     <script src="app.js"></script>
 
 
