@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mediminder"]
+      test: [ "CMD-SHELL", "pg_isready -U mediminder" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,6 +35,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    image: nginx:alpine
+    container_name: mediminder-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+    depends_on:
+      backend:
+        condition: service_started
 
 volumes:
   postgres_data:

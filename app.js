@@ -2,7 +2,7 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.1.7';
+const APP_VERSION = '2.1.8';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 // NOTE: DB object is now defined in firebase-db.js
@@ -1334,20 +1334,73 @@ function setupAuth() {
         }
     });
 
-    // Google Sign-In (requires Google Identity Services on frontend)
+    // Helper for decoding JWT token returned by Google
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Handle Google Sign-In response
+    async function handleGoogleCredentialResponse(response) {
+        const btn = document.getElementById('btn-google-signin');
+        document.getElementById('auth-error').classList.add('hidden');
+
+        try {
+            const payload = parseJwt(response.credential);
+            if (!payload) throw new Error('Érvénytelen token');
+
+            const { email, sub: googleId, name: fullName } = payload;
+
+            const apiRes = await ApiService.googleLogin(email, googleId, fullName);
+
+            // Backend DB sync
+            await DB.onLogin(apiRes.userId);
+
+            closeAuthModal();
+            updateHeader();
+            updateAdminVisibility();
+            renderDashboard();
+
+            showToast('✅ Sikeres bejelentkezés Google fiókkal');
+        } catch (error) {
+            console.error('[Auth] Google Login Error:', error);
+            showAuthError('Sikertelen Google bejelentkezés: ' + error.message);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // Google Sign-In button click handler
     document.getElementById('btn-google-signin').addEventListener('click', async () => {
         const btn = document.getElementById('btn-google-signin');
         btn.disabled = true;
         document.getElementById('auth-error').classList.add('hidden');
 
         try {
-            // For Google Sign-In, you need to integrate Google Identity Services
-            // This is a placeholder - implement Google OAuth2 flow
-            showAuthError('Google bejelentkezés még nincs implementálva. Kérjük használjon email/jelszót.');
-            btn.disabled = false;
+            google.accounts.id.initialize({
+                client_id: '82374151917-ari80p75dqshq1hs9idjf9sm9efl4pdl.apps.googleusercontent.com',
+                callback: handleGoogleCredentialResponse
+            });
+
+            google.accounts.id.prompt((notification) => {
+                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                    console.warn('[Auth] Google Prompt not displayed. Triggering fallback.');
+                    // Fallback to manual rendering if prompt is blocked
+                    showAuthError('A Google popup blokkolva van. Kérjük engedélyezze a popup ablakokat.');
+                    btn.disabled = false;
+                }
+            });
         } catch (error) {
-            console.error('[Auth] Google Sign-in error:', error);
-            showAuthError('Google bejelentkezés sikertelen. Próbáld újra!');
+            console.error('[Auth] Google Sign-in init error:', error);
+            showAuthError('Hiba a Google bejelentkezés indításakor.');
             btn.disabled = false;
         }
     });
