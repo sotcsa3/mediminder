@@ -1,0 +1,88 @@
+version: '3.8'
+
+# Production docker-compose with nginx reverse proxy and SSL
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
+# Or: docker-compose -f docker-compose.production.yml up -d
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: mediminder-db
+    environment:
+      POSTGRES_DB: mediminder
+      POSTGRES_USER: mediminder
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mediminder123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U mediminder" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mediminder-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mediminder
+      SPRING_DATASOURCE_USERNAME: mediminder
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-mediminder123}
+      # REQUIRED: Set these environment variables in production!
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://your-domain.com}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # Nginx reverse proxy with SSL
+  nginx:
+    image: nginx:alpine
+    container_name: mediminder-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./:/usr/share/nginx/html:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: nginx:alpine
+    container_name: mediminder-frontend
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+  nginx_logs:
+
+
+networks:
+  backend:
+    driver: bridge
