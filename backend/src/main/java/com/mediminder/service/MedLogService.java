@@ -18,49 +18,49 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class MedLogService {
-    
+
     private final MedLogRepository medLogRepository;
     private final AuthService authService;
-    
+
     public List<MedLogDTO> getMedLogs(String userId) {
         return medLogRepository.findByUserId(userId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
-    
+
     @Transactional
     public List<MedLogDTO> saveMedLogs(String userId, List<MedLogDTO> logs) {
         User user = authService.getUserById(userId);
-        
+
         // Get existing IDs
         List<String> newIds = logs.stream()
                 .map(MedLogDTO::getId)
                 .filter(id -> id != null && !id.isEmpty())
                 .toList();
-        
+
         // Delete logs not in the new list
         if (!newIds.isEmpty()) {
             medLogRepository.deleteByUserIdAndIdNotIn(userId, newIds);
         } else {
             medLogRepository.deleteByUserId(userId);
         }
-        
+
         // Save all logs
         List<MedLog> savedLogs = logs.stream()
                 .map(dto -> toEntity(dto, user))
                 .map(medLogRepository::save)
                 .toList();
-        
+
         return savedLogs.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
-    
+
     @Transactional
     public void deleteAllMedLogs(String userId) {
         medLogRepository.deleteByUserId(userId);
     }
-    
+
     private MedLogDTO toDTO(MedLog medLog) {
         return MedLogDTO.builder()
                 .id(medLog.getId())
@@ -68,11 +68,11 @@ public class MedLogService {
                 .date(medLog.getDate())
                 .time(medLog.getTime())
                 .taken(medLog.getTaken())
-                .takenAt(medLog.getTakenAt() != null ? 
-                        medLog.getTakenAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null)
+                .takenAt(medLog.getTakenAt() != null ? medLog.getTakenAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        : null)
                 .build();
     }
-    
+
     private MedLog toEntity(MedLogDTO dto, User user) {
         return MedLog.builder()
                 .id(dto.getId() != null ? dto.getId() : generateId())
@@ -81,13 +81,14 @@ public class MedLogService {
                 .date(dto.getDate())
                 .time(dto.getTime())
                 .taken(dto.getTaken() != null ? dto.getTaken() : false)
-                .takenAt(dto.getTakenAt() != null ? 
-                        LocalDateTime.parse(dto.getTakenAt(), DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null)
+                .takenAt(dto.getTakenAt() != null
+                        ? LocalDateTime.parse(dto.getTakenAt(), DateTimeFormatter.ISO_DATE_TIME)
+                        : null)
                 .build();
     }
-    
+
     private String generateId() {
-        return Long.toString(System.currentTimeMillis(), 36) + 
-               Long.toString((long) (Math.random() * 1000000000L), 36);
+        return Long.toString(System.currentTimeMillis(), 36) +
+                Long.toString((long) (Math.random() * 1000000000L), 36);
     }
 }
