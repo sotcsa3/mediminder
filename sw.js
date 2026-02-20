@@ -3,8 +3,8 @@
    Cache-first strategy for offline support
    ============================================ */
 
-const CACHE_NAME = 'mediminder-v2.1.9';
-const API_BASE_URL = 'http://localhost:8080/api';
+const CACHE_NAME = 'mediminder-v2.1.10';
+const API_PATH_PREFIX = '/api/';
 const ASSETS = [
     './',
     './index.html',
@@ -61,7 +61,7 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
     // Skip API requests - always go to network
-    if (event.request.url.includes('/api/')) {
+    if (event.request.url.includes(API_PATH_PREFIX)) {
         event.respondWith(
             fetch(event.request)
                 .catch(() => {

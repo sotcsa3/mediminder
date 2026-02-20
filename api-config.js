@@ -3,8 +3,9 @@
    Replaces Supabase with Spring Boot Backend
    ============================================ */
 
-// API Base URL - Change this to your backend URL
+// Configuration constants
 const API_BASE_URL = 'http://localhost:8080/api';
+const GOOGLE_CLIENT_ID = '82374151917-ari80p75dqshq1hs9idjf9sm9efl4pdl.apps.googleusercontent.com';
 
 // Token storage key
 const TOKEN_KEY = 'mediminder_token';

@@ -4,6 +4,7 @@ import com.mediminder.dto.MedLogDTO;
 import com.mediminder.entity.MedLog;
 import com.mediminder.entity.User;
 import com.mediminder.repository.MedLogRepository;
+import com.mediminder.util.IdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,10 +47,11 @@ public class MedLogService {
         }
 
         // Save all logs
-        List<MedLog> savedLogs = logs.stream()
+        List<MedLog> entitiesToSave = logs.stream()
                 .map(dto -> toEntity(dto, user))
-                .map(medLogRepository::save)
                 .toList();
+
+        List<MedLog> savedLogs = medLogRepository.saveAll(entitiesToSave);
 
         return savedLogs.stream()
                 .map(this::toDTO)
@@ -75,7 +77,7 @@ public class MedLogService {
 
     private MedLog toEntity(MedLogDTO dto, User user) {
         return MedLog.builder()
-                .id(dto.getId() != null ? dto.getId() : generateId())
+                .id(dto.getId() != null ? dto.getId() : IdGenerator.generateId())
                 .user(user)
                 .medId(dto.getMedId())
                 .date(dto.getDate())
@@ -85,10 +87,5 @@ public class MedLogService {
                         ? LocalDateTime.parse(dto.getTakenAt(), DateTimeFormatter.ISO_DATE_TIME)
                         : null)
                 .build();
-    }
-
-    private String generateId() {
-        return Long.toString(System.currentTimeMillis(), 36) +
-                Long.toString((long) (Math.random() * 1000000000L), 36);
     }
 }

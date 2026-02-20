@@ -2,10 +2,10 @@
    MediMinder – Application Logic
    ============================================ */
 
-const APP_VERSION = '2.1.9';
+const APP_VERSION = '2.1.10';
 const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
-// NOTE: DB object is now defined in firebase-db.js
+// NOTE: DB object is now defined in backend-db.js
 
 let currentUser = null;
 
@@ -150,7 +150,7 @@ function isMedTaken(medId, date, time) {
     return logs.some(l => l.medId === medId && l.date === date && l.time === time && l.taken);
 }
 
-function toggleMedTaken(medId, date, time) {
+async function toggleMedTaken(medId, date, time) {
     const logs = DB.getMedLogs();
     const idx = logs.findIndex(l => l.medId === medId && l.date === date && l.time === time);
 
@@ -168,18 +168,18 @@ function toggleMedTaken(medId, date, time) {
         });
     }
 
-    DB.saveMedLogs(logs);
+    await DB.saveMedLogs(logs);
 }
 
-function markAllTimesToday(medId) {
+async function markAllTimesToday(medId) {
     const med = DB.getMedications().find(m => m.id === medId);
     if (!med) return;
     const today = todayStr();
-    med.times.forEach(time => {
+    for (const time of med.times) {
         if (!isMedTaken(medId, today, time)) {
-            toggleMedTaken(medId, today, time);
+            await toggleMedTaken(medId, today, time);
         }
-    });
+    }
 }
 
 function areMedAllTimesTakenToday(medId) {
@@ -271,6 +271,7 @@ function setupOfflineDetection() {
 let confirmResolve = null;
 
 function showConfirm(title, message, icon = '⚠️') {
+    if (confirmResolve) confirmResolve(false); // Resolve any pending dialog
     return new Promise(resolve => {
         confirmResolve = resolve;
         document.getElementById('confirm-icon').textContent = icon;
@@ -283,11 +284,19 @@ function showConfirm(title, message, icon = '⚠️') {
 function setupConfirmDialog() {
     document.getElementById('btn-confirm-yes').addEventListener('click', () => {
         document.getElementById('modal-confirm').classList.add('hidden');
-        if (confirmResolve) confirmResolve(true);
+        if (confirmResolve) {
+            const resolve = confirmResolve;
+            confirmResolve = null;
+            resolve(true);
+        }
     });
     document.getElementById('btn-confirm-no').addEventListener('click', () => {
         document.getElementById('modal-confirm').classList.add('hidden');
-        if (confirmResolve) confirmResolve(false);
+        if (confirmResolve) {
+            const resolve = confirmResolve;
+            confirmResolve = null;
+            resolve(false);
+        }
     });
 }
 
@@ -405,10 +414,10 @@ function renderDashboardMeds() {
 
     // Click handlers
     container.querySelectorAll('.dashboard-med-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', async () => {
             const medId = item.dataset.medId;
             const time = item.dataset.time;
-            toggleMedTaken(medId, today, time);
+            await toggleMedTaken(medId, today, time);
             renderDashboard();
             showToast(isMedTaken(medId, today, time) ? '✅ Bevettem!' : '↩️ Visszavonva');
         });
@@ -539,11 +548,11 @@ function renderMedications() {
 
     // Time chip click
     container.querySelectorAll('.med-time-chip').forEach(chip => {
-        chip.addEventListener('click', (e) => {
+        chip.addEventListener('click', async (e) => {
             e.stopPropagation();
             const medId = chip.dataset.medId;
             const time = chip.dataset.time;
-            toggleMedTaken(medId, today, time);
+            await toggleMedTaken(medId, today, time);
             renderMedications();
             showToast(isMedTaken(medId, today, time) ? `✅ ${time} – Bevettem!` : `↩️ ${time} – Visszavonva`);
         });
@@ -551,9 +560,9 @@ function renderMedications() {
 
     // Take all button
     container.querySelectorAll('.btn-take-med.take').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            markAllTimesToday(btn.dataset.medId);
+            await markAllTimesToday(btn.dataset.medId);
             renderMedications();
             showToast('✅ Minden bevéve!');
         });
@@ -1361,6 +1370,18 @@ function setupAuth() {
 
             const apiRes = await ApiService.googleLogin(email, googleId, fullName);
 
+            // Fetch the user information to get proper ID and details
+            currentUser = {
+                id: apiRes.userId,
+                email: email,
+                user_metadata: { full_name: fullName }
+            };
+
+            DB.saveUser({
+                name: fullName || email.split('@')[0],
+                email: email
+            });
+
             // Backend DB sync
             await DB.onLogin(apiRes.userId);
 
@@ -1386,7 +1407,7 @@ function setupAuth() {
 
         try {
             google.accounts.id.initialize({
-                client_id: '82374151917-ari80p75dqshq1hs9idjf9sm9efl4pdl.apps.googleusercontent.com',
+                client_id: GOOGLE_CLIENT_ID,
                 callback: handleGoogleCredentialResponse
             });
 
@@ -1555,9 +1576,9 @@ function checkMedicationTimes() {
             if (taken) return;
 
             // Check if it's time (within 1-minute window)
-            if (currentTime === time) {
+            if (currentTime === time && !sent[`${med.id}_${time}_ontime`]) {
                 sendMedNotification(med.name, med.dosage, time);
-                markNotifSent(med.id, time);
+                markNotifSent(med.id, `${time}_ontime`);
             }
 
             // Also send a reminder 5 minutes before
@@ -1568,7 +1589,7 @@ function checkMedicationTimes() {
             const remMM = String(reminderDate.getMinutes()).padStart(2, '0');
             const reminderTime = `${remHH}:${remMM}`;
 
-            if (currentTime === reminderTime) {
+            if (currentTime === reminderTime && !sent[`${med.id}_${time}_remind`]) {
                 try {
                     new Notification('⏰ MediMinder – Hamarosan!', {
                         body: `${med.name} ${med.dosage} – 5 perc múlva (${time})`,
@@ -1576,7 +1597,7 @@ function checkMedicationTimes() {
                         tag: `med-remind-${time}`
                     });
                 } catch (e) { /* ignore */ }
-                markNotifSent(med.id, time);
+                markNotifSent(med.id, `${time}_remind`);
             }
         });
     });

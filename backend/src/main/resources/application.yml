@@ -4,8 +4,8 @@ spring:
   
   datasource:
     url: jdbc:postgresql://localhost:5432/mediminder
-    username: mediminder
-    password: mediminder123
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -35,7 +35,7 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:mediminder-jwt-secret-key-change-in-production-min-256-bits}
+    secret: ${JWT_SECRET}
     expiration: 86400000 # 24 hours in milliseconds
   
   cors:

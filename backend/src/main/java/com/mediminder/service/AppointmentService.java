@@ -4,6 +4,7 @@ import com.mediminder.dto.AppointmentDTO;
 import com.mediminder.entity.Appointment;
 import com.mediminder.entity.User;
 import com.mediminder.repository.AppointmentRepository;
+import com.mediminder.util.IdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,49 +17,50 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class AppointmentService {
-    
+
     private final AppointmentRepository appointmentRepository;
     private final AuthService authService;
-    
+
     public List<AppointmentDTO> getAppointments(String userId) {
         return appointmentRepository.findByUserId(userId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
-    
+
     @Transactional
     public List<AppointmentDTO> saveAppointments(String userId, List<AppointmentDTO> appointments) {
         User user = authService.getUserById(userId);
-        
+
         // Get existing IDs
         List<String> newIds = appointments.stream()
                 .map(AppointmentDTO::getId)
                 .filter(id -> id != null && !id.isEmpty())
                 .toList();
-        
+
         // Delete appointments not in the new list
         if (!newIds.isEmpty()) {
             appointmentRepository.deleteByUserIdAndIdNotIn(userId, newIds);
         } else {
             appointmentRepository.deleteByUserId(userId);
         }
-        
+
         // Save all appointments
-        List<Appointment> savedAppointments = appointments.stream()
+        List<Appointment> entitiesToSave = appointments.stream()
                 .map(dto -> toEntity(dto, user))
-                .map(appointmentRepository::save)
                 .toList();
-        
+
+        List<Appointment> savedAppointments = appointmentRepository.saveAll(entitiesToSave);
+
         return savedAppointments.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
-    
+
     @Transactional
     public void deleteAllAppointments(String userId) {
         appointmentRepository.deleteByUserId(userId);
     }
-    
+
     private AppointmentDTO toDTO(Appointment appointment) {
         return AppointmentDTO.builder()
                 .id(appointment.getId())
@@ -71,10 +73,10 @@ public class AppointmentService {
                 .status(appointment.getStatus())
                 .build();
     }
-    
+
     private Appointment toEntity(AppointmentDTO dto, User user) {
         return Appointment.builder()
-                .id(dto.getId() != null ? dto.getId() : generateId())
+                .id(dto.getId() != null ? dto.getId() : IdGenerator.generateId())
                 .user(user)
                 .doctorName(dto.getDoctorName())
                 .specialty(dto.getSpecialty())
@@ -84,10 +86,5 @@ public class AppointmentService {
                 .notes(dto.getNotes())
                 .status(dto.getStatus() != null ? dto.getStatus() : "pending")
                 .build();
-    }
-    
-    private String generateId() {
-        return Long.toString(System.currentTimeMillis(), 36) + 
-               Long.toString((long) (Math.random() * 1000000000L), 36);
     }
 }

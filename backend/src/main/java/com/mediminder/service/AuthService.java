@@ -4,6 +4,8 @@ import com.mediminder.dto.AuthRequest;
 import com.mediminder.dto.AuthResponse;
 import com.mediminder.entity.User;
 import com.mediminder.repository.UserRepository;
+import com.mediminder.exception.ConflictException;
+import com.mediminder.exception.ResourceNotFoundException;
 import com.mediminder.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,28 +17,28 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthService {
-    
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
-    
+
     @Transactional
     public AuthResponse register(AuthRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new ConflictException("Email already registered");
         }
-        
+
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getEmail().split("@")[0])
                 .provider("local")
                 .build();
-        
+
         user = userRepository.save(user);
-        
+
         String token = tokenProvider.generateToken(user.getId(), user.getEmail());
-        
+
         return AuthResponse.builder()
                 .token(token)
                 .userId(user.getId())
@@ -45,18 +47,18 @@ public class AuthService {
                 .message("Registration successful")
                 .build();
     }
-    
+
     @Transactional
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid email or password");
         }
-        
+
         String token = tokenProvider.generateToken(user.getId(), user.getEmail());
-        
+
         return AuthResponse.builder()
                 .token(token)
                 .userId(user.getId())
@@ -65,7 +67,7 @@ public class AuthService {
                 .message("Login successful")
                 .build();
     }
-    
+
     @Transactional
     public AuthResponse handleGoogleLogin(String email, String googleId, String fullName) {
         User user = userRepository.findByProviderAndProviderId("google", googleId)
@@ -83,7 +85,7 @@ public class AuthService {
                                 return userRepository.save(newUser);
                             });
                 });
-        
+
         // Update provider info if needed
         if (user.getProvider() == null || !user.getProvider().equals("google")) {
             user.setProvider("google");
@@ -93,9 +95,9 @@ public class AuthService {
             }
             userRepository.save(user);
         }
-        
+
         String token = tokenProvider.generateToken(user.getId(), user.getEmail());
-        
+
         return AuthResponse.builder()
                 .token(token)
                 .userId(user.getId())
@@ -104,14 +106,14 @@ public class AuthService {
                 .message("Google login successful")
                 .build();
     }
-    
+
     public User getUserById(String userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
-    
+
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }
