@@ -75,11 +75,11 @@ flowchart TB
 
 | Issue | Severity | Description |
 |-------|----------|-------------|
-| Hardcoded secrets | 🔴 Critical | JWT secret in docker-compose.yml is visible |
-| No rate limiting | 🔴 Critical | Vulnerable to brute force attacks |
+| ~~Hardcoded secrets~~ | ✅ Fixed | JWT secret in docker-compose.yml is visible |
+| ~~No rate limiting~~ | ✅ Fixed | Vulnerable to brute force attacks |
 | No HTTPS enforcement | 🔴 Critical | Credentials sent over plain HTTP |
-| Google Client ID exposed | 🟡 Medium | Client ID hardcoded in frontend |
-| No input validation | 🟡 Medium | DTOs lack validation annotations |
+| ~~Google Client ID exposed~~ | ✅ Fixed | Client ID hardcoded in frontend |
+| ~~No input validation~~ | ✅ Fixed | DTOs lack validation annotations |
 | No CSRF protection | 🟢 Low | Not needed for stateless JWT, but worth noting |
 
 ### 2. **Missing Production Infrastructure**
@@ -114,7 +114,7 @@ flowchart TB
 | No bundling | Multiple HTTP requests for each JS file |
 | No tree shaking | Unused code shipped to clients |
 | No source maps | Difficult debugging in production |
-| Hardcoded API URL | Must change code for different environments |
+| ~~Hardcoded API URL~~ | ✅ Fixed | Must change code for different environments |
 | No error tracking | No Sentry or similar integration |
 | Token in localStorage | Vulnerable to XSS attacks |
 
