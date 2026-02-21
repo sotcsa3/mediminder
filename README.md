@@ -48,7 +48,7 @@ The production setup includes an Nginx reverse proxy, SSL termination, and rate 
 ./scripts/generate-ssl-certs.sh
 
 # 2. Start all production services
-docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
 ```
 
 ### Option 2: Manual Setup

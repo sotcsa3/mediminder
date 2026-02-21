@@ -36,7 +36,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-mediminder123}
       # REQUIRED: Set these environment variables in production!
       JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://your-domain.com}
+      CORS_ORIGINS: ${CORS_ORIGINS}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     ports:
