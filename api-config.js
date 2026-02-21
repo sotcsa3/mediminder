@@ -5,12 +5,12 @@
 
 // Configuration constants
 // For production, change these values or use environment variables
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = window.API_BASE_URL || (window.location.protocol === 'https:' ? '/api' : 'http://localhost:8080/api');
 
 // Google OAuth Client ID - REQUIRED for Google login
 // Get your own client ID from Google Cloud Console
 // See: https://developers.google.com/identity/sign-in/web/getting-started
-const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = window.GOOGLE_CLIENT_ID || '82374151917-ari80p75dqshq1hs9idjf9sm9efl4pdl.apps.googleusercontent.com';
 
 // Token storage key
 const TOKEN_KEY = 'mediminder_token';
