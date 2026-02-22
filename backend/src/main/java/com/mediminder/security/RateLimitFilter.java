@@ -39,11 +39,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         String clientId = getClientIdentifier(request);
+        int maxRequests = getMaxRequests(request);
         RateLimitBucket bucket = buckets.computeIfAbsent(clientId, k -> new RateLimitBucket(
                 rateLimitingProperties.getWindowSeconds()));
 
         // Check if request is allowed
-        if (!bucket.tryConsume()) {
+        if (!bucket.tryConsume(maxRequests)) {
             log.warn("Rate limit exceeded for client: {} on path: {}", clientId, request.getRequestURI());
             response.setStatus(429); // Too Many Requests
             response.setContentType("application/json");
@@ -53,8 +54,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         // Add rate limit headers
-        response.setHeader("X-RateLimit-Limit", String.valueOf(getMaxRequests(request)));
-        response.setHeader("X-RateLimit-Remaining", String.valueOf(bucket.getRemainingRequests()));
+        response.setHeader("X-RateLimit-Limit", String.valueOf(maxRequests));
+        response.setHeader("X-RateLimit-Remaining", String.valueOf(bucket.getRemainingRequests(maxRequests)));
         response.setHeader("X-RateLimit-Reset", String.valueOf(bucket.getResetTime()));
 
         filterChain.doFilter(request, response);
@@ -109,23 +110,26 @@ public class RateLimitFilter extends OncePerRequestFilter {
             this.windowStart = System.currentTimeMillis();
         }
 
-        public synchronized boolean tryConsume() {
+        public synchronized boolean tryConsume(int maxRequests) {
             long now = System.currentTimeMillis();
             if (now - windowStart > windowSeconds * 1000L) {
                 // Reset window
                 windowStart = now;
                 count.set(0);
             }
+            if (count.get() >= maxRequests) {
+                return false;
+            }
             count.incrementAndGet();
             return true;
         }
 
-        public int getRemainingRequests() {
+        public int getRemainingRequests(int maxRequests) {
             long now = System.currentTimeMillis();
             if (now - windowStart > windowSeconds * 1000L) {
-                return Integer.MAX_VALUE;
+                return maxRequests;
             }
-            return Integer.MAX_VALUE - count.get();
+            return Math.max(0, maxRequests - count.get());
         }
 
         public long getResetTime() {

@@ -5,6 +5,7 @@ import com.mediminder.security.UserPrincipal;
 import com.mediminder.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/v1/appointments")
 @RequiredArgsConstructor
+@Validated
 @Slf4j
 public class AppointmentController {
 

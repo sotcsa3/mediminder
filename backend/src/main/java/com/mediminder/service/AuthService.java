@@ -4,6 +4,7 @@ import com.mediminder.dto.AuthRequest;
 import com.mediminder.dto.AuthResponse;
 import com.mediminder.entity.User;
 import com.mediminder.repository.UserRepository;
+import com.mediminder.exception.AuthenticationException;
 import com.mediminder.exception.ConflictException;
 import com.mediminder.exception.ResourceNotFoundException;
 import com.mediminder.security.JwtTokenProvider;
@@ -54,7 +55,7 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new AuthenticationException("Invalid email or password");
         }
 
         String token = tokenProvider.generateToken(user.getId(), user.getEmail());
@@ -74,6 +75,14 @@ public class AuthService {
                 .orElseGet(() -> {
                     // Check if user exists with this email
                     return userRepository.findByEmail(email)
+                            .map(existingUser -> {
+                                // If the existing account uses a different provider, reject the login
+                                if (!"google".equals(existingUser.getProvider())) {
+                                    throw new ConflictException(
+                                            "An account with this email already exists. Please log in with your password.");
+                                }
+                                return existingUser;
+                            })
                             .orElseGet(() -> {
                                 // Create new user
                                 User newUser = User.builder()
@@ -86,14 +95,12 @@ public class AuthService {
                             });
                 });
 
-        // Update provider info if needed
-        if (user.getProvider() == null || !user.getProvider().equals("google")) {
-            user.setProvider("google");
-            user.setProviderId(googleId);
-            if (fullName != null) {
+        // Update provider info only for existing Google users
+        if ("google".equals(user.getProvider()) && user.getProviderId() != null) {
+            if (fullName != null && !fullName.equals(user.getFullName())) {
                 user.setFullName(fullName);
+                userRepository.save(user);
             }
-            userRepository.save(user);
         }
 
         String token = tokenProvider.generateToken(user.getId(), user.getEmail());

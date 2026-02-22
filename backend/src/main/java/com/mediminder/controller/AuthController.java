@@ -24,14 +24,14 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest request) {
-        log.info("Register request for email: {}", request.getEmail());
+        log.info("Register request for email: {}", maskEmail(request.getEmail()));
         AuthResponse response = authService.register(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
-        log.info("Login request for email: {}", request.getEmail());
+        log.info("Login request for email: {}", maskEmail(request.getEmail()));
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
@@ -48,7 +48,7 @@ public class AuthController {
                     .build());
         }
 
-        log.info("Google login request for email: {}", email);
+        log.info("Google login request for email: {}", maskEmail(email));
         AuthResponse response = authService.handleGoogleLogin(email, googleId, fullName);
         return ResponseEntity.ok(response);
     }
@@ -64,5 +64,18 @@ public class AuthController {
                 "id", user.getId(),
                 "email", user.getEmail(),
                 "fullName", user.getFullName()));
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***";
+        }
+        String[] parts = email.split("@");
+        String local = parts[0];
+        String domain = parts[1];
+        if (local.length() <= 2) {
+            return "***@" + domain;
+        }
+        return local.charAt(0) + "***" + local.charAt(local.length() - 1) + "@" + domain;
     }
 }
