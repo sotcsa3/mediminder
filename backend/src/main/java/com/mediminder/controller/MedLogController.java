@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/med-logs")
+@RequestMapping("/v1/med-logs")
 @RequiredArgsConstructor
 @Slf4j
 public class MedLogController {

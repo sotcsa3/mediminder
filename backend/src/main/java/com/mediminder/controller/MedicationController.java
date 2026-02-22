@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/medications")
+@RequestMapping("/v1/medications")
 @RequiredArgsConstructor
 @Slf4j
 public class MedicationController {

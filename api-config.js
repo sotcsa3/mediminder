@@ -5,7 +5,8 @@
 
 // Configuration constants
 // For production, change these values or use environment variables
-const API_BASE_URL = window.API_BASE_URL || (window.location.protocol === 'https:' ? '/api' : 'http://localhost:8080/api');
+// API version v1 - all endpoints are versioned
+const API_BASE_URL = window.API_BASE_URL || (window.location.protocol === 'https:' ? '/api/v1' : 'http://localhost:8080/api/v1');
 
 // Google OAuth Client ID - REQUIRED for Google login
 // Get your own client ID from Google Cloud Console
