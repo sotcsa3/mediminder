@@ -60,6 +60,9 @@ self.addEventListener('fetch', (event) => {
     // Only handle GET requests
     if (event.request.method !== 'GET') return;
 
+    // Skip Google Identity Services requests - let browser handle directly
+    if (event.request.url.startsWith('https://accounts.google.com/')) return;
+
     // Skip API requests - always go to network
     if (event.request.url.includes(API_PATH_PREFIX)) {
         event.respondWith(
