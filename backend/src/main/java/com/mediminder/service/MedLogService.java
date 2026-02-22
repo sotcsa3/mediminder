@@ -1,5 +1,6 @@
 package com.mediminder.service;
 
+import com.mediminder.config.CacheConfig;
 import com.mediminder.dto.MedLogDTO;
 import com.mediminder.entity.MedLog;
 import com.mediminder.entity.User;
@@ -7,6 +8,8 @@ import com.mediminder.repository.MedLogRepository;
 import com.mediminder.util.IdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +26,14 @@ public class MedLogService {
     private final MedLogRepository medLogRepository;
     private final AuthService authService;
 
+    @Cacheable(value = CacheConfig.MED_LOGS_CACHE, key = "#userId")
     public List<MedLogDTO> getMedLogs(String userId) {
         return medLogRepository.findByUserId(userId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = CacheConfig.MED_LOGS_CACHE, key = "#userId")
     @Transactional
     public List<MedLogDTO> saveMedLogs(String userId, List<MedLogDTO> logs) {
         User user = authService.getUserById(userId);
@@ -58,6 +63,7 @@ public class MedLogService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = CacheConfig.MED_LOGS_CACHE, key = "#userId")
     @Transactional
     public void deleteAllMedLogs(String userId) {
         medLogRepository.deleteByUserId(userId);

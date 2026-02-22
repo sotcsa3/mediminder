@@ -1,5 +1,6 @@
 package com.mediminder.service;
 
+import com.mediminder.config.CacheConfig;
 import com.mediminder.dto.AppointmentDTO;
 import com.mediminder.entity.Appointment;
 import com.mediminder.entity.User;
@@ -7,6 +8,8 @@ import com.mediminder.repository.AppointmentRepository;
 import com.mediminder.util.IdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +24,14 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final AuthService authService;
 
+    @Cacheable(value = CacheConfig.APPOINTMENTS_CACHE, key = "#userId")
     public List<AppointmentDTO> getAppointments(String userId) {
         return appointmentRepository.findByUserId(userId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = CacheConfig.APPOINTMENTS_CACHE, key = "#userId")
     @Transactional
     public List<AppointmentDTO> saveAppointments(String userId, List<AppointmentDTO> appointments) {
         User user = authService.getUserById(userId);
@@ -56,6 +61,7 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = CacheConfig.APPOINTMENTS_CACHE, key = "#userId")
     @Transactional
     public void deleteAllAppointments(String userId) {
         appointmentRepository.deleteByUserId(userId);
