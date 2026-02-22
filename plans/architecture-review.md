@@ -75,23 +75,23 @@ flowchart TB
 
 | Issue | Severity | Description |
 |-------|----------|-------------|
-| ~~Hardcoded secrets~~ | ✅ Fixed | JWT secret in docker-compose.yml is visible |
-| ~~No rate limiting~~ | ✅ Fixed | Vulnerable to brute force attacks |
-| No HTTPS enforcement | 🔴 Critical | Credentials sent over plain HTTP |
-| ~~Google Client ID exposed~~ | ✅ Fixed | Client ID hardcoded in frontend |
-| ~~No input validation~~ | ✅ Fixed | DTOs lack validation annotations |
-| No CSRF protection | 🟢 Low | Not needed for stateless JWT, but worth noting |
+| ~~Hardcoded secrets~~ | ✅ Fixed | JWT secret in environment variables |
+| ~~No rate limiting~~ | ✅ Fixed | Filter-based and Nginx-level rate limiting |
+| ~~No HTTPS enforcement~~ | ✅ Fixed | Nginx handles SSL termination and redirection |
+| ~~Google Client ID exposed~~ | ✅ Fixed | Client ID moved to config/env |
+| ~~No input validation~~ | ✅ Fixed | DTOs have Jakarta Validation annotations |
+| No CSRF protection | 🟢 Low | Stateless JWT architecture |
 
 ### 2. **Missing Production Infrastructure**
 
 | Component | Status | Impact |
 |-----------|--------|--------|
-| Reverse Proxy | ❌ Missing | No SSL termination, load balancing |
-| Monitoring | ❌ Missing | No metrics, alerts, or observability |
-| Logging | ⚠️ Basic | No centralized logging |
+| Reverse Proxy | ✅ Added | Nginx handles SSL and backend routing |
+| Monitoring | ⚠️ Partial | Actuator + Prometheus metrics enabled |
+| Logging | ⚠️ Basic | Standard Spring Boot logs |
 | Database Backups | ❌ Missing | No backup strategy |
 | CI/CD Pipeline | ❌ Missing | Manual deployments |
-| Environment Config | ⚠️ Partial | Secrets not properly managed |
+| Environment Config | ✅ Managed | .env with Docker Compose support |
 
 ### 3. **Backend Gaps**
 
@@ -101,9 +101,9 @@ flowchart TB
 | No pagination | Large datasets will cause performance issues |
 | No caching | Database hit on every request |
 | No connection pooling config | Default HikariCP settings may not be optimal |
-| No health check details | Basic `/health` endpoint only |
+| ~~No health check details~~ | ✅ Fixed | Actuator probes and custom health details |
 | No graceful shutdown | Potential data loss on deployment |
-| Missing validation | DTOs need `@Valid` annotations |
+| ~~Missing validation~~ | ✅ Fixed | DTOs have @Valid and @NotBlank annotations |
 | No audit logging | Cannot track who changed what |
 
 ### 4. **Frontend Gaps**
@@ -207,18 +207,18 @@ flowchart TB
 
 ### Phase 1: Security Hardening - Must Have
 
-- [ ] Add reverse proxy with SSL termination
+- [x] Add reverse proxy with SSL termination
 - [x] Implement rate limiting
 - [x] Move secrets to environment variables or secret manager
 - [x] Add input validation on all DTOs
-- [ ] Implement proper CORS policy
-- [ ] Add security headers
+- [x] Implement proper CORS policy
+- [x] Add security headers
 
 ### Phase 2: Production Infrastructure - Must Have
 
 - [ ] Set up CI/CD pipeline
 - [ ] Configure database backups
-- [ ] Add monitoring and alerting
+- [x] Add monitoring and alerting (Actuator/Prometheus)
 - [ ] Implement centralized logging
 - [ ] Add database migrations (Flyway/Liquibase)
 
@@ -306,13 +306,13 @@ flowchart TB
 
 | Category | Current | Target | Gap |
 |----------|---------|--------|-----|
-| Security | 3/10 | 9/10 | 🔴 Critical |
-| Scalability | 4/10 | 8/10 | 🟡 Moderate |
-| Observability | 2/10 | 8/10 | 🔴 Critical |
+| Security | 8/10 | 9/10 | 🟡 Minor |
+| Scalability | 5/10 | 8/10 | 🟡 Moderate |
+| Observability | 5/10 | 8/10 | 🟡 Moderate |
 | Testing | 2/10 | 8/10 | 🔴 Critical |
-| Infrastructure | 4/10 | 9/10 | 🟡 Moderate |
-| Code Quality | 6/10 | 8/10 | 🟢 Minor |
+| Infrastructure | 6/10 | 9/10 | 🟡 Moderate |
+| Code Quality | 7/10 | 8/10 | 🟢 Minor |
 
-**Overall Production Readiness: 35%**
+**Overall Production Readiness: 55%**
 
 The application has a solid foundation but requires significant security hardening and infrastructure improvements before production deployment.
