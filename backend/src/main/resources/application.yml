@@ -75,5 +75,5 @@ app:
 
 logging:
   level:
-    com.mediminder: DEBUG
-    org.springframework.security: INFO
+    com.mediminder: INFO
+    org.springframework.security: WARN
