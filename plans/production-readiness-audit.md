@@ -10,96 +10,32 @@
 
 | Kategória | Pontszám | Minimum prod-hoz | Állapot |
 |-----------|----------|-------------------|---------|
-| Biztonság | 6.5/10 | 8/10 | 🔴 Nem kész |
-| Terhelhetőség | 3/10 | 6/10 | 🔴 Nem kész |
+| Biztonság | 8.5/10 | 8/10 | ✅ Elfogadható |
+| Terhelhetőség | 5/10 | 6/10 | 🟡 Részleges |
 | Tesztelés | 1/10 | 5/10 | 🔴 Kritikus |
-| Infrastruktúra | 5/10 | 7/10 | 🟡 Részleges |
+| Infrastruktúra | 7/10 | 7/10 | ✅ Elfogadható |
 | Kódminőség | 7/10 | 7/10 | ✅ Elfogadható |
-| **Összesített production readiness** | **~40%** | **65%+** | **🔴 Nem deployolható** |
+| **Összesített production readiness** | **~57%** | **65%+** | **🟡 Javítandó** |
 
 ---
 
 ## 1. KRITIKUS Biztonsági Sérülékenységek
 
-### 1.1 🔴 Rate Limiter nem működik — `tryConsume()` mindig `true`
+### 1.1 ✅ ~~Rate Limiter nem működik — `tryConsume()` mindig `true`~~
 
-**Fájl:** `backend/src/main/java/com/mediminder/security/RateLimitFilter.java` (120-135. sor)
-
-**Probléma:** A `RateLimitBucket.tryConsume()` metódus növeli a számlálót, de **soha nem hasonlítja össze a maximális kérésszámmal** — mindig `true`-t ad vissza. A rate limiter gyakorlatilag ki van kapcsolva.
-
-```java
-// JELENLEGI (HIBÁS) — mindig true-t ad vissza
-public synchronized boolean tryConsume() {
-    long now = System.currentTimeMillis();
-    if (now - windowStart > windowSeconds * 1000L) {
-        windowStart = now;
-        count.set(0);
-    }
-    count.incrementAndGet();
-    return true; // ← HIBA: soha nem ellenőrzi a limitet!
-}
-```
-
-**Javítás:**
-```java
-public synchronized boolean tryConsume(int maxRequests) {
-    long now = System.currentTimeMillis();
-    if (now - windowStart > windowSeconds * 1000L) {
-        windowStart = now;
-        count.set(0);
-    }
-    if (count.get() >= maxRequests) {
-        return false;
-    }
-    count.incrementAndGet();
-    return true;
-}
-```
-
-**Hatás:** Bárki korlátlan számú kérést küldhet — DDoS és brute-force támadás lehetséges.
+**Megoldva:** A `tryConsume()` metódus mostantól fogadja a `maxRequests` paramétert és ellenőrzi a limitet. A `getRemainingRequests()` is helyesen számolja a hátralévő kéréseket.
 
 ---
 
-### 1.2 🔴 Google Login Fiókatvétel (Account Takeover)
+### 1.2 ✅ ~~Google Login Fiókatvétel (Account Takeover)~~
 
-**Fájl:** `backend/src/main/java/com/mediminder/service/AuthService.java` — `handleGoogleLogin()` metódus
-
-**Probléma:** Ha egy Google fiókkal bejelentkező felhasználó email címe megegyezik egy meglévő **lokális** (jelszóval regisztrált) fiókkal, a rendszer csendben:
-1. Átírja a `provider` mezőt `"local"`-ról `"google"`-re
-2. Felülírja a `fullName`-et
-3. Kiadja a JWT tokent
-
-**Támadási forgatókönyv:**
-1. Áldozat regisztrál `victim@gmail.com` email + jelszó kombinációval
-2. Támadó birtokolja a `victim@gmail.com` Google fiókot (vagy létrehozza)
-3. Támadó a Google login-nal belép → átveszi a fiókot
-4. Az áldozat jelszavas belépése továbbra is működhet, de a fiók már kompromittált
-
-**Javítás:** Ha az email már létezik más providerrel, ne engedje az átvételt — adjon hibaüzenetet, vagy kérje a meglévő fiók megerősítését.
+**Megoldva:** Ha az email már létezik más providerrel (pl. `local`), a rendszer `ConflictException`-t dob. Csak meglévő Google fiókokhoz enged hozzáférést.
 
 ---
 
-### 1.3 🔴 `@Valid` nem kényszeríti ki a validációt List elemekre
+### 1.3 ✅ ~~`@Valid` nem kényszeríti ki a validációt List elemekre~~
 
-**Fájl:** Minden controller (`MedicationController`, `AppointmentController`, `MedLogController`)
-
-**Probléma:** A kontrollerek `@Valid @RequestBody List<MedicationDTO>` mintát használnak. Spring Boot-ban a `@Valid` annotáció **nem propagálódik a lista elemeire** automatikusan. A `@NotBlank` annotációk a DTO mezőkön **nem futnak le**.
-
-**Érintett endpointok:**
-- `POST /api/v1/medications` — `@Valid @RequestBody List<MedicationDTO>`
-- `POST /api/v1/appointments` — `@Valid @RequestBody List<AppointmentDTO>`
-- `POST /api/v1/med-logs` — `@Valid @RequestBody List<MedLogDTO>`
-
-**Javítás:** `@Validated` annotáció hozzáadása a controller osztályokhoz:
-```java
-@RestController
-@RequestMapping("/v1/medications")
-@RequiredArgsConstructor
-@Validated  // ← EZ HIÁNYZIK
-public class MedicationController { ... }
-```
-
-**Hatás:** Üres név, dózis, frekvencia stb. bekerülhet az adatbázisba.
+**Megoldva:** `@Validated` annotáció hozzáadva a `MedicationController`, `AppointmentController`, és `MedLogController` osztályokhoz.
 
 ---
 
@@ -119,32 +55,15 @@ public class MedicationController { ... }
 
 ## 2. KÖZEPES Biztonsági Problémák
 
-### 2.1 🟡 Konténer root-ként fut
+### 2.1 ✅ ~~Konténer root-ként fut~~
 
-**Fájl:** `backend/Dockerfile`
-
-**Probléma:** Nincs `USER` direktíva — az alkalmazás root jogosultsággal fut a konténerben. Ha bármelyik sérülékenységet kihasználják, a támadó root hozzáférést kap a konténerhez.
-
-**Javítás:**
-```dockerfile
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
-```
+**Megoldva:** Dockerfile-ban `appuser` felhasználó létrehozva és beállítva. `HEALTHCHECK` direktíva is hozzáadva.
 
 ---
 
-### 2.2 🟡 Email címek PII logolása
+### 2.2 ✅ ~~Email címek PII logolása~~
 
-**Fájl:** `backend/src/main/java/com/mediminder/controller/AuthController.java` (28., 34. sor)
-
-```java
-log.info("Register request for email: {}", request.getEmail());
-log.info("Login request for email: {}", request.getEmail());
-```
-
-**Probléma:** GDPR és egyéb adatvédelmi szabályok szerint a PII (personally identifiable information) nem kerülhet plaintext-ben a logokba.
-
-**Javítás:** Email maszkolása a logokban, pl. `s***@gmail.com`.
+**Megoldva:** `maskEmail()` helper metódus hozzáadva az `AuthController`-hez. Az email logokban maszkolva jelenik meg (pl. `s***a@gmail.com`).
 
 ---
 
@@ -160,40 +79,21 @@ const ADMIN_EMAIL = 'sotcsa+admin@gmail.com';
 
 ---
 
-### 2.4 🟡 Nginx rate limiting kikommentelve
+### 2.4 ✅ ~~Nginx rate limiting kikommentelve~~
 
-**Fájl:** `nginx/nginx.conf` (118. sor)
-
-```nginx
-# Rate limiting (optional - comment out if not needed)
-# limit_req zone=api_limit burst=20 nodelay;
-```
-
-A zone definiálva van (`limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;`), de az alkalmazás nincs rá kötve. Az alkalmazásszintű rate limiter sem működik (lásd 1.1), tehát **semmilyen rate limiting nincs érvényben**.
+**Megoldva:** A `limit_req zone=api_limit burst=20 nodelay;` aktiválva az `nginx.conf`-ban.
 
 ---
 
-### 2.5 🟡 Rate limiter user ID soha nincs beállítva
+### 2.5 ✅ ~~Rate limiter user ID soha nincs beállítva~~
 
-**Fájl:** `backend/src/main/java/com/mediminder/security/RateLimitFilter.java` (68. sor)
-
-```java
-String userId = (String) request.getAttribute("userId");
-```
-
-A `userId` request attribute-ot senki nem állítja be. A `JwtAuthenticationFilter` a `SecurityContextHolder`-be teszi az authentikációt, de nem állít be request attribute-ot. Így az autentikált felhasználók mindig IP-alapú rate limiting alá kerülnének (ha a rate limiter egyáltalán működne).
+**Megoldva:** A `JwtAuthenticationFilter` mostantól beállítja a `userId` request attribute-ot: `request.setAttribute("userId", userId)`.
 
 ---
 
-### 2.6 🟡 Autentikációs hibák 400-as kódot adnak 401 helyett
+### 2.6 ✅ ~~Autentikációs hibák 400-as kódot adnak 401 helyett~~
 
-**Fájl:** `backend/src/main/java/com/mediminder/service/AuthService.java`
-
-```java
-throw new RuntimeException("Invalid email or password");
-```
-
-A `GlobalExceptionHandler` ezt `RuntimeException`-ként kezeli és 400 Bad Request-et ad vissza. Az RFC 7235 szerint ez 401 Unauthorized kellene legyen. Saját exception típus kellene.
+**Megoldva:** `AuthenticationException` saját exception osztály létrehozva. A `GlobalExceptionHandler` 401 Unauthorized-et ad vissza. Az `AuthService.login()` ezt használja `RuntimeException` helyett.
 
 ---
 
@@ -227,53 +127,21 @@ Egy aktív felhasználó hónapok után több ezer `MedLog` bejegyzéssel rendel
 
 ---
 
-### 3.3 🟡 Nincs graceful shutdown
+### 3.3 ✅ ~~Nincs graceful shutdown~~
 
-**Fájl:** `backend/src/main/resources/application.yml`
-
-Hiányzik:
-```yaml
-server:
-  shutdown: graceful
-
-spring:
-  lifecycle:
-    timeout-per-shutdown-phase: 30s
-```
-
-Deploy közben a folyamatban lévő kérések megszakadhatnak.
+**Megoldva:** `server.shutdown: graceful` és `spring.lifecycle.timeout-per-shutdown-phase: 30s` hozzáadva az `application.yml`-hez.
 
 ---
 
-### 3.4 🟡 Nincs JVM memória konfiguráció
+### 3.4 ✅ ~~Nincs JVM memória konfiguráció~~
 
-**Fájl:** `backend/Dockerfile`
-
-```dockerfile
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
-
-Hiányzik: `-Xmx`, `-Xms`, `-XX:+UseContainerSupport`, `-XX:MaxRAMPercentage`.
+**Megoldva:** Dockerfile-ban beállítva: `-XX:+UseContainerSupport`, `-XX:MaxRAMPercentage=75.0`, `-XX:InitialRAMPercentage=50.0`.
 
 ---
 
-### 3.5 🟡 Connection Pool nem konfigurált
+### 3.5 ✅ ~~Connection Pool nem konfigurált~~
 
-**Fájl:** `backend/src/main/resources/application.yml`
-
-Spring Boot default HikariCP beállítások (max 10 connection). Production-ben explicit konfiguráció szükséges:
-
-```yaml
-spring:
-  datasource:
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-      leak-detection-threshold: 60000
-```
+**Megoldva:** HikariCP explicit konfigurációval az `application.yml`-ben (max 20 connection, leak detection, stb.).
 
 ---
 
@@ -358,8 +226,8 @@ A `docker-compose.production.yml` PostgreSQL volume-ot használ, de nincs:
 | CI/CD pipeline | ❌ | Nincs (kézi deploy) |
 | DB backup | ❌ | Nincs stratégia |
 | Flyway/Liquibase | ✅ | V1 baseline migráció kész |
-| Container health check | ❌ | Dockerfile-ban nincs `HEALTHCHECK` |
-| Non-root container | ❌ | Root-ként fut |
+| Container health check | ✅ | Dockerfile HEALTHCHECK hozzáadva |
+| Non-root container | ✅ | appuser felhasználóval fut |
 
 ---
 
@@ -393,21 +261,21 @@ A `SecurityConfig`-ban engedélyezve van a `/swagger-ui/**` és `/v3/api-docs/**
 
 | # | Probléma | Fájl | Becsült effort |
 |---|----------|------|----------------|
-| 1 | Rate limiter `tryConsume()` javítás | `RateLimitFilter.java` | 30 perc |
-| 2 | Google login fiók átvétel védelme | `AuthService.java` | 1 óra |
-| 3 | `@Validated` hozzáadása controllerekhez | `*Controller.java` | 15 perc |
+| 1 | ~~Rate limiter `tryConsume()` javítás~~ | ~~`RateLimitFilter.java`~~ | ✅ Kész |
+| 2 | ~~Google login fiók átvétel védelme~~ | ~~`AuthService.java`~~ | ✅ Kész |
+| 3 | ~~`@Validated` hozzáadása controllerekhez~~ | ~~`*Controller.java`~~ | ✅ Kész |
 | 4 | ~~`ddl-auto: update` → `validate` + Flyway~~ | ~~`application.yml` + `pom.xml`~~ | ✅ Kész |
-| 5 | Nginx rate limit aktiválás | `nginx.conf` | 5 perc |
+| 5 | ~~Nginx rate limit aktiválás~~ | ~~`nginx.conf`~~ | ✅ Kész |
 
 ### Tier 2 — Fontos (deploy után 1 héten belül)
 
 | # | Probléma | Fájl | Becsült effort |
 |---|----------|------|----------------|
-| 6 | Graceful shutdown konfiguráció | `application.yml` | 15 perc |
-| 7 | JVM memória flags + non-root user | `Dockerfile` | 30 perc |
-| 8 | HikariCP pool tuning | `application.yml` | 30 perc |
-| 9 | Auth 401 response (saját exception) | `AuthService.java` + handler | 1 óra |
-| 10 | PII maszkolás logokban | `AuthController.java` | 30 perc |
+| 6 | ~~Graceful shutdown konfiguráció~~ | ~~`application.yml`~~ | ✅ Kész |
+| 7 | ~~JVM memória flags + non-root user~~ | ~~`Dockerfile`~~ | ✅ Kész |
+| 8 | ~~HikariCP pool tuning~~ | ~~`application.yml`~~ | ✅ Kész |
+| 9 | ~~Auth 401 response (saját exception)~~ | ~~`AuthService.java` + handler~~ | ✅ Kész |
+| 10 | ~~PII maszkolás logokban~~ | ~~`AuthController.java`~~ | ✅ Kész |
 
 ### Tier 3 — Tervezendő (1 hónapon belül)
 
