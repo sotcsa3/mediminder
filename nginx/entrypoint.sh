@@ -1,16 +1,23 @@
 #!/bin/sh
 # Nginx entrypoint script to substitute environment variables
 
+set -e
+
+NGINX_CONFIG_TEMPLATE="/etc/nginx/nginx.conf"
+NGINX_CONFIG_RENDERED="/tmp/nginx.conf"
+
+cp "$NGINX_CONFIG_TEMPLATE" "$NGINX_CONFIG_RENDERED"
+
 echo "Substituting environment variables in nginx.conf..."
 
 # Replace SERVER_NAME placeholder with actual value
 if [ -n "$SERVER_NAME" ]; then
-    sed -i "s/__SERVER_NAME__/$SERVER_NAME/g" /etc/nginx/nginx.conf
+    sed -i "s/__SERVER_NAME__/$SERVER_NAME/g" "$NGINX_CONFIG_RENDERED"
 fi
 
 # Replace API_URL if specified
 if [ -n "$API_URL" ]; then
-    sed -i "s/__API_URL__/$API_URL/g" /etc/nginx/nginx.conf
+    sed -i "s/__API_URL__/$API_URL/g" "$NGINX_CONFIG_RENDERED"
 fi
 
 # Determine SSL certificate paths
@@ -30,8 +37,8 @@ else
     exit 1
 fi
 
-sed -i "s|__SSL_CERT__|$SSL_CERT|g" /etc/nginx/nginx.conf
-sed -i "s|__SSL_KEY__|$SSL_KEY|g" /etc/nginx/nginx.conf
+sed -i "s|__SSL_CERT__|$SSL_CERT|g" "$NGINX_CONFIG_RENDERED"
+sed -i "s|__SSL_KEY__|$SSL_KEY|g" "$NGINX_CONFIG_RENDERED"
 
 echo "Starting nginx..."
-exec nginx -g 'daemon off;'
+exec nginx -c "$NGINX_CONFIG_RENDERED" -g 'daemon off;'
