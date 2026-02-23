@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Production docker-compose with nginx reverse proxy and SSL
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
 # Or: docker-compose -f docker-compose.production.yml up -d
