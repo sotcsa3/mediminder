@@ -137,7 +137,6 @@ volumes:
   nginx_logs:
   certbot_www:
   certbot_conf:
-  db_backups:
 
 
 networks:
