@@ -5,6 +5,9 @@ import com.mediminder.security.UserPrincipal;
 import com.mediminder.service.MedLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,17 @@ public class MedLogController {
     @GetMapping
     public ResponseEntity<List<MedLogDTO>> getMedLogs(@AuthenticationPrincipal UserPrincipal principal) {
         List<MedLogDTO> logs = medLogService.getMedLogs(principal.getUserId());
+        return ResponseEntity.ok(logs);
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<Page<MedLogDTO>> getMedLogsPaged(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        size = Math.min(size, 200); // Limit max page size
+        Page<MedLogDTO> logs = medLogService.getMedLogs(
+                principal.getUserId(), PageRequest.of(page, size, Sort.by("date").descending()));
         return ResponseEntity.ok(logs);
     }
 

@@ -5,6 +5,9 @@ import com.mediminder.security.UserPrincipal;
 import com.mediminder.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,17 @@ public class AppointmentController {
     @GetMapping
     public ResponseEntity<List<AppointmentDTO>> getAppointments(@AuthenticationPrincipal UserPrincipal principal) {
         List<AppointmentDTO> appointments = appointmentService.getAppointments(principal.getUserId());
+        return ResponseEntity.ok(appointments);
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<Page<AppointmentDTO>> getAppointmentsPaged(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        size = Math.min(size, 100); // Limit max page size
+        Page<AppointmentDTO> appointments = appointmentService.getAppointments(
+                principal.getUserId(), PageRequest.of(page, size, Sort.by("date").ascending()));
         return ResponseEntity.ok(appointments);
     }
 
