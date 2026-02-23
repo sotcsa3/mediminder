@@ -49,8 +49,9 @@ log "Stopping backend container..."
 docker stop mediminder-backend 2>/dev/null || true
 
 # Restore (backup includes --clean DROP statements, no need to drop/recreate DB)
+# Set client encoding to UTF-8 for proper character handling
 log "Restoring database..."
-if gunzip -c "${BACKUP_FILE}" | docker exec -i "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${DB_NAME}" > /dev/null 2>&1; then
+if gunzip -c "${BACKUP_FILE}" | docker exec -i "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${DB_NAME}" -c "SET client_encoding = 'UTF8'" > /dev/null 2>&1; then
     log "Database restored successfully!"
 else
     error "Restore failed!"

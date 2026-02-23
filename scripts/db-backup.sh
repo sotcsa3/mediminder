@@ -31,7 +31,8 @@ log "Starting database backup..."
 log "Target: ${BACKUP_FILE}"
 
 # Perform backup via docker exec (--clean adds DROP statements for seamless restore)
-if docker exec "${DB_CONTAINER}" pg_dump --clean -U "${DB_USER}" "${DB_NAME}" | gzip > "${BACKUP_FILE}"; then
+# Use --encoding=UTF8 to ensure proper UTF-8 output
+if docker exec "${DB_CONTAINER}" pg_dump --clean --encoding=UTF8 -U "${DB_USER}" "${DB_NAME}" | gzip > "${BACKUP_FILE}"; then
     BACKUP_SIZE=$(du -h "${BACKUP_FILE}" | cut -f1)
     log "Backup completed successfully (${BACKUP_SIZE})"
 else
