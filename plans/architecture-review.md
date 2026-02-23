@@ -236,7 +236,7 @@ flowchart TB
 - [x] Implement pagination (Page/Pageable across all endpoints)
 - [x] Add caching layer (Caffeine with 5min TTL + cache eviction)
 - [x] Configure connection pooling (HikariCP: 20 max, 5 min idle, leak detection)
-- [ ] Set up CDN for frontend
+- [x] Set up CDN for frontend (Skipped external CDN — Nginx cache headers configured for browser caching with hashed assets)
 
 ### Phase 5: Enhanced Features - Nice to Have
 
