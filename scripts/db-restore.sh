@@ -37,7 +37,7 @@ fi
 BACKUP_SIZE=$(du -h "${BACKUP_FILE}" | cut -f1)
 log "Restoring from: ${BACKUP_FILE} (${BACKUP_SIZE})"
 
-warn "⚠️  This will DROP and recreate the '${DB_NAME}' database!"
+warn "⚠️  This will overwrite the '${DB_NAME}' database with the backup!"
 read -p "Are you sure? (yes/no): " CONFIRM
 if [ "${CONFIRM}" != "yes" ]; then
     log "Restore cancelled."
@@ -48,17 +48,7 @@ fi
 log "Stopping backend container..."
 docker stop mediminder-backend 2>/dev/null || true
 
-# Drop and recreate database
-log "Dropping and recreating database..."
-docker exec "${DB_CONTAINER}" psql -U "${DB_USER}" -d postgres -c "
-    SELECT pg_terminate_backend(pg_stat_activity.pid)
-    FROM pg_stat_activity
-    WHERE pg_stat_activity.datname = '${DB_NAME}' AND pid <> pg_backend_pid();
-"
-docker exec "${DB_CONTAINER}" psql -U "${DB_USER}" -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME};"
-docker exec "${DB_CONTAINER}" psql -U "${DB_USER}" -d postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
-
-# Restore
+# Restore (backup includes --clean DROP statements, no need to drop/recreate DB)
 log "Restoring database..."
 if gunzip -c "${BACKUP_FILE}" | docker exec -i "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${DB_NAME}" > /dev/null 2>&1; then
     log "Database restored successfully!"
