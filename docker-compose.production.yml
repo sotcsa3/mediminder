@@ -91,6 +91,47 @@ services:
     networks:
       - backend
 
+  # Automated database backups — runs pg_dump daily at 2:00 AM UTC
+  db-backup:
+    image: postgres:15-alpine
+    container_name: mediminder-db-backup
+    environment:
+      PGHOST: postgres
+      PGUSER: mediminder
+      PGPASSWORD: ${DB_PASSWORD:-mediminder123}
+      PGDATABASE: mediminder
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - db_backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Starting backup scheduler..."
+        while true; do
+          TIMESTAMP=$$(date +"%Y%m%d_%H%M%S")
+          BACKUP_FILE="/backups/mediminder_$${TIMESTAMP}.sql.gz"
+          echo "[BACKUP] $$(date) - Starting backup..."
+          if pg_dump | gzip > "$$BACKUP_FILE"; then
+            SIZE=$$(du -h "$$BACKUP_FILE" | cut -f1)
+            echo "[BACKUP] $$(date) - Completed: $$BACKUP_FILE ($$SIZE)"
+          else
+            echo "[BACKUP] $$(date) - FAILED!"
+            rm -f "$$BACKUP_FILE"
+          fi
+          # Cleanup old backups
+          find /backups -name "mediminder_*.sql.gz" -mtime +$${BACKUP_RETENTION_DAYS:-30} -delete
+          TOTAL=$$(ls /backups/mediminder_*.sql.gz 2>/dev/null | wc -l)
+          echo "[BACKUP] $$(date) - Total backups: $$TOTAL"
+          # Sleep until next day (86400 seconds = 24 hours)
+          sleep 86400
+        done
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   nginx_logs:
