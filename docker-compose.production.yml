@@ -10,8 +10,7 @@ services:
       POSTGRES_DB: mediminder
       POSTGRES_USER: mediminder
       POSTGRES_PASSWORD: ${DB_PASSWORD:-mediminder123}
-    ports:
-      - "5432:5432"
+    # Port NOT exposed in production — only accessible via internal Docker network
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

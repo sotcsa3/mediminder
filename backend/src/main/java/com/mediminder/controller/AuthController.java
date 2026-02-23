@@ -1,10 +1,12 @@
 package com.mediminder.controller;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.mediminder.dto.AuthRequest;
 import com.mediminder.dto.AuthResponse;
 import com.mediminder.entity.User;
 import com.mediminder.security.UserPrincipal;
 import com.mediminder.service.AuthService;
+import com.mediminder.service.GoogleTokenVerifierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final GoogleTokenVerifierService googleTokenVerifier;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest request) {
@@ -38,17 +41,27 @@ public class AuthController {
 
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
-        String googleId = request.get("googleId");
-        String fullName = request.get("fullName");
+        String credential = request.get("credential");
 
-        if (email == null || email.isBlank() || googleId == null || googleId.isBlank()) {
+        if (credential == null || credential.isBlank()) {
             return ResponseEntity.badRequest().body(AuthResponse.builder()
-                    .message("Email and googleId are required")
+                    .message("Google credential token is required")
                     .build());
         }
 
-        log.info("Google login request for email: {}", maskEmail(email));
+        // Verify the Google ID token server-side
+        GoogleIdToken.Payload payload = googleTokenVerifier.verify(credential);
+        if (payload == null) {
+            return ResponseEntity.status(401).body(AuthResponse.builder()
+                    .message("Invalid or expired Google token")
+                    .build());
+        }
+
+        String email = payload.getEmail();
+        String googleId = payload.getSubject();
+        String fullName = (String) payload.get("name");
+
+        log.info("Google login request for verified email: {}", maskEmail(email));
         AuthResponse response = authService.handleGoogleLogin(email, googleId, fullName);
         return ResponseEntity.ok(response);
     }

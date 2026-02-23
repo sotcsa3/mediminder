@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,11 @@ public class AppointmentService {
         return appointmentRepository.findByUserId(userId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Page<AppointmentDTO> getAppointments(String userId, Pageable pageable) {
+        return appointmentRepository.findByUserId(userId, pageable)
+                .map(this::toDTO);
     }
 
     @CacheEvict(value = CacheConfig.APPOINTMENTS_CACHE, key = "#userId")

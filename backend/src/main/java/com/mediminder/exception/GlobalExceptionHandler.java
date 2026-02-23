@@ -7,11 +7,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -62,9 +64,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<?> handleRuntimeException(RuntimeException e) {
+        log.error("Unhandled RuntimeException: {}", e.getMessage(), e);
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", e.getMessage()));
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "An internal error occurred"));
     }
 
     @ExceptionHandler(Exception.class)

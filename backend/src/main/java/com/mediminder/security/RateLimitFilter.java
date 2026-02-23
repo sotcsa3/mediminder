@@ -1,6 +1,9 @@
 package com.mediminder.security;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.mediminder.config.RateLimitingProperties;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
@@ -20,7 +23,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitingProperties rateLimitingProperties;
-    private final ConcurrentHashMap<String, RateLimitBucket> buckets = new ConcurrentHashMap<>();
+    private Cache<String, RateLimitBucket> buckets;
+
+    @PostConstruct
+    public void init() {
+        this.buckets = Caffeine.newBuilder()
+                .expireAfterAccess(rateLimitingProperties.getWindowSeconds() * 2L, TimeUnit.SECONDS)
+                .maximumSize(10_000)
+                .build();
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -40,7 +51,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String clientId = getClientIdentifier(request);
         int maxRequests = getMaxRequests(request);
-        RateLimitBucket bucket = buckets.computeIfAbsent(clientId, k -> new RateLimitBucket(
+        RateLimitBucket bucket = buckets.get(clientId, k -> new RateLimitBucket(
                 rateLimitingProperties.getWindowSeconds()));
 
         // Check if request is allowed

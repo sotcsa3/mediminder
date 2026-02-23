@@ -92,8 +92,8 @@ const ApiService = {
         return response;
     },
 
-    async googleLogin(email, googleId, fullName) {
-        const response = await this.post('/auth/google', { email, googleId, fullName });
+    async googleLogin(credential) {
+        const response = await this.post('/auth/google', { credential });
         if (response.token) {
             this.setToken(response.token);
         }

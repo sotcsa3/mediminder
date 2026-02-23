@@ -1363,12 +1363,14 @@ function setupAuth() {
         document.getElementById('auth-error').classList.add('hidden');
 
         try {
+            // Parse JWT client-side only for UI display (email, name)
             const payload = parseJwt(response.credential);
             if (!payload) throw new Error('Érvénytelen token');
 
-            const { email, sub: googleId, name: fullName } = payload;
+            const { email, name: fullName } = payload;
 
-            const apiRes = await ApiService.googleLogin(email, googleId, fullName);
+            // Send raw credential token to backend for server-side verification
+            const apiRes = await ApiService.googleLogin(response.credential);
 
             // Fetch the user information to get proper ID and details
             currentUser = {
