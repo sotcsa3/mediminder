@@ -63,6 +63,8 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./:/usr/share/nginx/html:ro
       - nginx_logs:/var/log/nginx
+      - certbot_www:/var/www/certbot:ro
+      - certbot_conf:/etc/letsencrypt:ro
     depends_on:
       - backend
       - frontend
@@ -73,6 +75,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Certbot for Let's Encrypt SSL certificates
+  certbot:
+    image: certbot/certbot
+    container_name: mediminder-certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_conf:/etc/letsencrypt
+    networks:
+      - backend
 
   frontend:
     image: nginx:alpine
@@ -85,6 +97,8 @@ services:
 volumes:
   postgres_data:
   nginx_logs:
+  certbot_www:
+  certbot_conf:
 
 
 networks:
