@@ -29,10 +29,7 @@
 | **Súlyosság** | KRITIKUS |
 | **Kategória** | Biztonság — Autentikáció bypass |
 | **Fájl** | `backend/src/main/java/com/mediminder/controller/AuthController.java` (42-56. sor) |
-| **Állapot** | 🔴 Nyitott |
-
-**Leírás:**  
-A `/v1/auth/google` endpoint elfogadja a kliens által küldött `{email, googleId, fullName}` JSON body-t és közvetlenül létrehoz/bejelentkeztet felhasználókat **anélkül, hogy a Google ID tokent valaha ellenőrizné a Google szervereivel**.
+| **Állapot** | ✅ Javítva | `{email, googleId, fullName}` JSON body-t és közvetlenül létrehoz/bejelentkeztet felhasználókat **anélkül, hogy a Google ID tokent valaha ellenőrizné a Google szervereivel**.
 
 ```java
 @PostMapping("/google")
@@ -60,7 +57,7 @@ curl -X POST /api/v1/auth/google \
 | **Súlyosság** | MAGAS |
 | **Kategória** | Biztonság — Rate Limiting |
 | **Fájl** | `backend/src/main/java/com/mediminder/config/SecurityConfig.java` (46-47. sor) |
-| **Állapot** | 🔴 Nyitott |
+| **Állapot** | ✅ Javítva |
 
 **Leírás:**  
 A Spring Security filter chain-ben:
@@ -81,7 +78,7 @@ Az `addFilterBefore` logikája miatt a sorrend: `JwtAuth → RateLimit → Usern
 | **Súlyosság** | MAGAS |
 | **Kategória** | Teljesítmény — Memória |
 | **Fájl** | `backend/src/main/java/com/mediminder/security/RateLimitFilter.java` (22. sor) |
-| **Állapot** | 🔴 Nyitott |
+| **Állapot** | ✅ Javítva |
 
 **Leírás:**  
 ```java
@@ -100,7 +97,7 @@ A bucket-ek IP/userId alapján jönnek létre és **soha nem törlődnek**. Ninc
 | **Súlyosság** | MAGAS |
 | **Kategória** | Biztonság — Information Disclosure |
 | **Fájl** | `backend/src/main/java/com/mediminder/service/AuthService.java` (53-57. sor) |
-| **Állapot** | 🔴 Nyitott |
+| **Állapot** | ✅ Javítva |
 
 **Leírás:**  
 ```java
@@ -123,7 +120,7 @@ Két különböző hibaüzenet ("User not found" vs "Invalid email or password")
 | **Súlyosság** | MAGAS |
 | **Kategória** | Biztonság — Information Disclosure |
 | **Fájl** | `backend/src/main/java/com/mediminder/exception/GlobalExceptionHandler.java` (63-67. sor) |
-| **Állapot** | 🔴 Nyitott |
+| **Állapot** | ✅ Javítva |
 
 **Leírás:**  
 ```java
@@ -148,7 +145,7 @@ public ResponseEntity<?> handleRuntimeException(RuntimeException e) {
 | **Súlyosság** | MAGAS |
 | **Kategória** | Deployment — Hálózati biztonság |
 | **Fájl** | `docker-compose.production.yml` (14-15. sor) |
-| **Állapot** | 🔴 Nyitott |
+| **Állapot** | ✅ Javítva |
 
 **Leírás:**  
 ```yaml
