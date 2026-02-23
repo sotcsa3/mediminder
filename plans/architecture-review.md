@@ -89,20 +89,20 @@ flowchart TB
 | Reverse Proxy | ✅ Added | Nginx handles SSL and backend routing |
 | Monitoring | ✅ Restricted | Actuator + Prometheus (IP restricted access) |
 | Logging | ✅ Production | Configured with INFO/WARN thresholds |
-| Database Backups | ❌ Missing | No backup strategy |
-| CI/CD Pipeline | ❌ Missing | Manual deployments |
+| Database Backups | ✅ Added | Automated daily pg_dump in Docker + restore scripts |
+| CI/CD Pipeline | ✅ Added | GitHub Actions: test → build → deploy (staging/production) |
 | Environment Config | ✅ Managed | .env with Docker Compose support |
 
 ### 3. **Backend Gaps**
 
 | Issue | Description |
 |-------|-------------|
-| No API versioning | Breaking changes will affect all clients |
-| No pagination | Large datasets will cause performance issues |
-| No caching | Database hit on every request |
-| No connection pooling config | Default HikariCP settings may not be optimal |
+| ~~No API versioning~~ | ✅ Fixed | All controllers use `/api/v1/...` versioned paths |
+| ~~No pagination~~ | ✅ Fixed | `Page<T>/Pageable` in all repositories, services, controllers |
+| ~~No caching~~ | ✅ Fixed | Caffeine cache with 5min TTL, `@Cacheable`/`@CacheEvict` on services |
+| ~~No connection pooling config~~ | ✅ Fixed | HikariCP configured (20 max, 5 min idle, leak detection) |
 | ~~No health check details~~ | ✅ Fixed | Actuator probes and custom health details |
-| No graceful shutdown | Potential data loss on deployment |
+| ~~No graceful shutdown~~ | ✅ Fixed | `server.shutdown: graceful` with 30s timeout |
 | ~~Missing validation~~ | ✅ Fixed | DTOs have @Valid and @NotBlank annotations |
 | No audit logging | Cannot track who changed what |
 
@@ -110,10 +110,10 @@ flowchart TB
 
 | Issue | Description |
 |-------|-------------|
-| No build process | Raw JS files served - no minification |
-| No bundling | Multiple HTTP requests for each JS file |
-| No tree shaking | Unused code shipped to clients |
-| No source maps | Difficult debugging in production |
+| ~~No build process~~ | ✅ Fixed | `npm run build` produces minified dist/ with esbuild |
+| ~~No bundling~~ | ✅ Fixed | JS/CSS minified with hashed filenames for cache busting |
+| No tree shaking | Unused code shipped to clients (vanilla JS limitation) |
+| ~~No source maps~~ | ✅ Fixed | Source maps generated during build |
 | ~~Hardcoded API URL~~ | ✅ Fixed | Must change code for different environments |
 | No error tracking | No Sentry or similar integration |
 | Token in localStorage | Vulnerable to XSS attacks |
@@ -131,7 +131,7 @@ flowchart TB
 
 | Area | Coverage |
 |------|----------|
-| Backend unit tests | ⚠️ Only context load test |
+| Backend unit tests | ✅ 51 tests covering AuthService, MedicationService, AppointmentService, MedLogService, JwtTokenProvider |
 | Backend integration tests | ❌ None |
 | Frontend unit tests | ⚠️ Minimal - only api-service |
 | E2E tests | ❌ None |
@@ -216,15 +216,15 @@ flowchart TB
 
 ### Phase 2: Production Infrastructure - Must Have
 
-- [ ] Set up CI/CD pipeline
-- [ ] Configure database backups
+- [x] Set up CI/CD pipeline (GitHub Actions: test → build → deploy)
+- [x] Configure database backups (automated daily pg_dump + restore scripts)
 - [x] Add monitoring and alerting (Actuator/Prometheus + IP Restriction)
 - [x] Implement production logging (INFO/WARN thresholds)
 - [x] Add database migrations (Flyway/Liquibase)
 
 ### Phase 3: Quality Assurance - Should Have
 
-- [ ] Add backend unit tests for services
+- [x] Add backend unit tests for services (51 tests: Auth, Medication, Appointment, MedLog, JWT)
 - [ ] Add integration tests for controllers
 - [ ] Add frontend unit tests
 - [ ] Set up E2E testing
@@ -232,10 +232,10 @@ flowchart TB
 
 ### Phase 4: Scalability - Should Have
 
-- [ ] Add API versioning
-- [ ] Implement pagination
-- [ ] Add caching layer
-- [ ] Configure connection pooling
+- [x] Add API versioning (`/api/v1/...` on all controllers)
+- [x] Implement pagination (Page/Pageable across all endpoints)
+- [x] Add caching layer (Caffeine with 5min TTL + cache eviction)
+- [x] Configure connection pooling (HikariCP: 20 max, 5 min idle, leak detection)
 - [ ] Set up CDN for frontend
 
 ### Phase 5: Enhanced Features - Nice to Have
@@ -306,13 +306,13 @@ flowchart TB
 
 | Category | Current | Target | Gap |
 |----------|---------|--------|-----|
-| Security | 8/10 | 9/10 | 🟡 Minor |
-| Scalability | 5/10 | 8/10 | 🟡 Moderate |
+| Security | 8/10 | 9/10 | � Minor |
+| Scalability | 8/10 | 8/10 | ✅ Target Reached |
 | Observability | 7/10 | 8/10 | 🟢 Minor |
-| Testing | 2/10 | 8/10 | 🔴 Critical |
-| Infrastructure | 6/10 | 9/10 | 🟡 Moderate |
+| Testing | 6/10 | 8/10 | 🟡 Moderate |
+| Infrastructure | 9/10 | 9/10 | ✅ Target Reached |
 | Code Quality | 8/10 | 8/10 | ✅ Target Reached |
 
-**Overall Production Readiness: 60%**
+**Overall Production Readiness: 85%**
 
-The application has a solid foundation but requires significant security hardening and infrastructure improvements before production deployment.
+The application is near production-ready. Remaining gaps: integration tests, E2E tests, frontend test coverage, error tracking, and CDN setup.
