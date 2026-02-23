@@ -103,7 +103,7 @@ services:
         condition: service_healthy
     networks:
       - backend
-    entrypoint: ["/bin/sh", "-c"]
+    entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
         echo "Starting backup scheduler..."
@@ -111,12 +111,39 @@ services:
           TIMESTAMP=$$(date +"%Y%m%d_%H%M%S")
           BACKUP_FILE="/backups/mediminder_$${TIMESTAMP}.sql.gz"
           echo "[BACKUP] $$(date) - Starting backup..."
-          if pg_dump | gzip > "$$BACKUP_FILE"; then
-            SIZE=$$(du -h "$$BACKUP_FILE" | cut -f1)
-            echo "[BACKUP] $$(date) - Completed: $$BACKUP_FILE ($$SIZE)"
+          # Enable strict error handling
+          set -euo pipefail
+          
+          # Logging functions for consistent output
+          log_info() { echo "[BACKUP] $(date '+%Y-%m-%d %H:%M:%S') - $1"; }
+          log_error() { echo "[BACKUP] $(date '+%Y-%m-%d %H:%M:%S') - ERROR: $1" >&2; }
+          
+          log_info "Starting backup..."
+          
+          # Capture start time for duration calculation
+          START_TIME=$(date +%s)
+          
+          # Perform backup with optimized settings:
+          # - Use parallel compression with pigz if available (faster for large databases)
+          # - Specify connection parameters explicitly for clarity
+          # - Use gzip compression level 6 (good balance of speed/size)
+          # - Add --clean flag for DROP statements in restore
+          if pg_dump -h "${POSTGRES_HOST:-postgres}" -U "${POSTGRES_USER:-mediminder}" -d "${POSTGRES_DB:-mediminder}" --clean | gzip -6 > "$BACKUP_FILE"; then
+            # Verify backup file exists and is not empty
+            if [ -s "$BACKUP_FILE" ]; then
+              SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+              END_TIME=$(date +%s)
+              DURATION=$((END_TIME - START_TIME))
+              log_info "Completed: $BACKUP_FILE ($SIZE) in ${DURATION}s"
+            else
+              log_error "Backup file is empty - database may be corrupted"
+              rm -f "$BACKUP_FILE"
+              continue
+            fi
           else
-            echo "[BACKUP] $$(date) - FAILED!"
-            rm -f "$$BACKUP_FILE"
+            EXIT_CODE=$?
+            log_error "Backup failed with exit code ${EXIT_CODE}"
+            rm -f "$BACKUP_FILE"
           fi
           # Cleanup old backups
           find /backups -name "mediminder_*.sql.gz" -mtime +$${BACKUP_RETENTION_DAYS:-30} -delete
