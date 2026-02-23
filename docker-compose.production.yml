@@ -22,9 +22,7 @@ services:
       - backend
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/sotcsa3/mediminder-backend:latest
     container_name: mediminder-backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mediminder
@@ -58,7 +56,6 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/entrypoint.sh:/etc/nginx/entrypoint.sh:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
-      - ./dist:/usr/share/nginx/html:ro
       - nginx_logs:/var/log/nginx
       - certbot_www:/var/www/certbot:ro
       - certbot_conf:/etc/letsencrypt:ro
@@ -84,10 +81,8 @@ services:
       - backend
 
   frontend:
-    image: nginx:alpine
+    image: ghcr.io/sotcsa3/mediminder-frontend:latest
     container_name: mediminder-frontend
-    volumes:
-      - ./dist:/usr/share/nginx/html:ro
     networks:
       - backend
 

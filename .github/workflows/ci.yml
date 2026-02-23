@@ -129,6 +129,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.frontend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
   # ── Deploy to Staging (auto) ───────────────────────────────
   deploy-staging:
     name: Deploy to Staging
@@ -145,10 +157,14 @@ jobs:
           DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
           DEPLOY_USER: ${{ secrets.STAGING_USER }}
           DEPLOY_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 Deploying to staging..."
           # Add your deployment commands here, e.g.:
-          # ssh -i key $DEPLOY_USER@$DEPLOY_HOST "cd /app && docker compose pull && docker compose up -d"
+          # echo "$GHCR_TOKEN" | ssh -i key $DEPLOY_USER@$DEPLOY_HOST \
+          #   "docker login ghcr.io -u ${{ github.actor }} --password-stdin && \
+          #    cd /app && docker compose -f docker-compose.production.yml pull && \
+          #    docker compose -f docker-compose.production.yml up -d"
           echo "⚠️  Configure STAGING_HOST, STAGING_USER, and STAGING_SSH_KEY secrets to enable auto-deploy"
 
   # ── Deploy to Production (manual approval) ─────────────────
@@ -167,8 +183,12 @@ jobs:
           DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
           DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
           DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 Deploying to production..."
           # Add your deployment commands here, e.g.:
-          # ssh -i key $DEPLOY_USER@$DEPLOY_HOST "cd /app && docker compose -f docker-compose.production.yml pull && docker compose -f docker-compose.production.yml up -d"
+          # echo "$GHCR_TOKEN" | ssh -i key $DEPLOY_USER@$DEPLOY_HOST \
+          #   "docker login ghcr.io -u ${{ github.actor }} --password-stdin && \
+          #    cd /app && docker compose -f docker-compose.production.yml pull && \
+          #    docker compose -f docker-compose.production.yml up -d"
           echo "⚠️  Configure PRODUCTION_HOST, PRODUCTION_USER, and PRODUCTION_SSH_KEY secrets to enable auto-deploy"
