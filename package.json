@@ -5,8 +5,11 @@
   "main": "app.js",
   "scripts": {
     "test": "vitest",
+    "build": "node scripts/build-web.js",
     "build:cap": "node scripts/build.js",
-    "build:android": "bash scripts/build_android.sh"
+    "build:android": "bash scripts/build_android.sh",
+    "dev": "vite --config vite.build.config.js",
+    "preview": "vite preview --config vite.build.config.js"
   },
   "repository": {
     "type": "git",
