@@ -1,0 +1,73 @@
+# MediMinder: PWA → Flutter Migration – Walkthrough
+
+## Összefoglaló
+
+A MediMinder frontend teljes egészében át lett írva vanilla HTML/CSS/JS + Capacitor-ről **Flutter**-re (Dart). A Spring Boot backend **változatlan** maradt.
+
+## Létrehozott projekt struktúra
+
+```
+frontend/
+├── lib/
+│   ├── main.dart                    # Entry point, routing, Provider setup
+│   ├── models/
+│   │   ├── medication.dart          # Gyógyszer model
+│   │   ├── appointment.dart         # Találkozó model
+│   │   └── user.dart                # Felhasználó model
+│   ├── services/
+│   │   ├── api_config.dart          # API konfiguráció, konstansok
+│   │   ├── api_service.dart         # REST kliens (HTTP)
+│   │   └── db_service.dart          # Lokális cache (SharedPreferences)
+│   ├── providers/
+│   │   └── app_state.dart           # Központi állapotkezelés (ChangeNotifier)
+│   ├── theme/
+│   │   └── app_theme.dart           # Material 3 téma (Nunito font, zöld/narancs)
+│   ├── screens/
+│   │   ├── splash_screen.dart       # Splash screen animációkkal
+│   │   ├── home_screen.dart         # Bottom nav + header
+│   │   ├── dashboard_page.dart      # Főoldal: mai gyógyszerek, vizit, statisztikák
+│   │   ├── medications_page.dart    # Gyógyszerek lista + Ma/Összes szűrő
+│   │   ├── appointments_page.dart   # Közelgő/Korábbi vizitek
+│   │   ├── admin_page.dart          # Admin panel (skeleton)
+│   │   └── auth_screen.dart         # Bejelentkezés/Regisztráció + Google
+│   └── widgets/
+│       ├── medication_form.dart     # Gyógyszer hozzáadás/szerkesztés form
+│       └── appointment_form.dart    # Találkozó hozzáadás/szerkesztés form
+├── pubspec.yaml                     # Függőségek
+└── test/
+    └── widget_test.dart
+```
+
+## Funkciók állapota
+
+| Funkció | Állapot |
+|---------|---------|
+| Splash screen (animált) | ✅ Kész |
+| Dashboard (gyógyszerek, vizit, stat) | ✅ Kész |
+| Gyógyszerek (CRUD, bevétel jelölés) | ✅ Kész |
+| Találkozók (CRUD, közelgő/korábbi) | ✅ Kész |
+| Bejelentkezés (email/jelszó) | ✅ Kész |
+| Regisztráció | ✅ Kész |
+| Google bejelentkezés | ⚠️ Gomb kész, natív konfig kell |
+| Admin panel | ✅ Skeleton kész |
+| REST API kliens | ✅ Kész |
+| Lokális cache | ✅ Kész |
+| Material 3 téma | ✅ Kész |
+| Bottom navigation | ✅ Kész |
+| Értesítések | 🔲 Dep hozzáadva, nincs bekötve |
+| Offline mód | 🔲 Dep hozzáadva, nincs bekötve |
+| Docker/deployment frissítés | 🔲 Még nem |
+
+## Verifikáció
+
+- **`flutter analyze`**: ✅ 0 issue – tiszta kód
+- **Futtatás**: `cd frontend && flutter run -d chrome` (Chrome szükséges)
+
+## Indítás
+
+```bash
+cd /home/sotcsa/playground/mediminder/frontend
+flutter run -d chrome
+```
+
+A backend-del való integráció teszteléséhez a backend-nek is futnia kell (`docker-compose up -d`).

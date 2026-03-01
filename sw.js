@@ -3,7 +3,7 @@
    Cache-first strategy for offline support
    ============================================ */
 
-const CACHE_NAME = 'mediminder-v2.1.34';
+const CACHE_NAME = 'mediminder-v2.1.35';
 const API_PATH_PREFIX = '/api/';
 const ASSETS = [
     './',
